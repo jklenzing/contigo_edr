@@ -3,6 +3,7 @@ from .grav_utils import get_potential
 
 import numpy as np
 import numpy.typing as npt
+import os.path
 
 
 #TODO could add data directory structure for loading coeff if dir is passed
@@ -28,6 +29,10 @@ class GravPot():
         self.lon = lon
         self.pot_file = pot_file
         self.lmax = lmax
+
+        if os.path.isfile(pot_file):
+            print('loading')
+            self.load_coeff()
     
     def load_coeff(self, pot_file: str =None):
         # potential file to use
@@ -52,7 +57,7 @@ class GravPot():
         if len(self.r) != len(self.lat) or len(self.r) != len(self.lon):
             raise ValueError('r, lat, and lon must be same length')
         
-        self.gravpot = [get_potential(rr, rlat, rlon,
+        self.gravpot = np.array([get_potential(rr, rlat, rlon,
                     self.clm, self.slm, self.GM, self.r0, lmax=self.lmax)
-                    for rr, rlat, rlon in zip(self.r,self.lat,self.lon)]
+                    for rr, rlat, rlon in zip(self.r,self.lat,self.lon)])
         
