@@ -20,7 +20,9 @@ def read_icgem_coeff(file_path: str, encoding: str ="ISO-8859-1"):
         harmonics
     slm : 2-D np.array of shape [l,m] holding the c coeffecients for the spherical 
         harmonics     
-    dictionary containg the meta data from the file
+    dictionary containg the meta data from the file. 
+        GM - gravatational constant of object
+        r0 - radius of object
         
     Reference
     ---------
@@ -55,20 +57,37 @@ def read_icgem_coeff(file_path: str, encoding: str ="ISO-8859-1"):
 
     return clm, slm, {'prodcut':product,'r0':r0, 'GM':gm, 'lmax':lmax}
 
-
-
-
-
 def get_potential(r, lat, lon, clm, slm, gm, r0, lmax=50):
-    """
-    Calculates gravitational potential using the clm, slm coeffecients passed.
-    r: Earth Centered Earth Fixed (meters)
-    lat: Earth Centered Earth Fixed latitude (radians)
-    lon: Earth Centered Earth Fixed longitude (radians)
-    """
+    """Derive Gravatational Potential
 
-    # Calculate r (meters), lat, and lon (radians)
+    Derive all values need for potential derivation then pass them
+    to _get_potential_numba_core which uses Numba and JIT to perform
+    the derivation faster, namely the sum of the double for loop
 
+    Parameters
+    ----------
+    r : float
+        Radial location (ECEF - meters)
+    lat : float
+        Latitude location (ECEF - radians)
+    lon : float
+        Longitude location (ECEF - radians)
+    clm : 2D array
+        C_lm coeffecients.
+    slm : _type_
+        S_lm coeffecients.
+    gm :float
+        Gravatational Potential Constant of object (m^3/s^2)
+    r0 : float
+        Radius of object (meters)
+    lmax : int, optional
+        Max degree/order for potential derivation, by default 50
+
+    Returns
+    -------
+    float
+        Gravatation Potential (m^2/s^2)
+    """
     # Get normalized Legendre functions at the target latitude
     # Note: 'geodesy' normalization is required for EGM96
     theta = np.pi/2 - lat  # Convert latitude (radians) to colatitude (radians)
@@ -93,7 +112,30 @@ def get_potential(r, lat, lon, clm, slm, gm, r0, lmax=50):
 @numba.jit(nopython=True, fastmath=True)
 def _get_potential_numba_core(lmax, rad_ratio, p_normalized, 
                               clm_arr, slm_arr, cos_m_lon, sin_m_lon):
-    
+    """Numba/JIT function to perform potential summation
+
+    Parameters
+    ----------
+    lmax : int
+        Max degree/order for potential derivation, by default 50
+    rad_ratio : float
+        Ratio between position and body radius.
+    p_normalized : float
+        Normalized legedre coeffecients
+    clm_arr : 2D array float
+        _C_lm coeffecients.
+    slm_arr : 2D array float
+        S_lm coeffecients.
+    cos_m_lon : float
+        cos(mlon)
+    sin_m_lon : float
+        sin(mlon)
+
+    Returns
+    -------
+    float
+        Potential double for loop sum
+    """    
     potential_sum = 0.0
 
     for l in range(2, lmax + 1):
