@@ -1,9 +1,10 @@
-from .grav_utils import read_icgem_coeff
-from .grav_utils import get_potential
-
+import os.path
 import numpy as np
 import numpy.typing as npt
-import os.path
+
+
+from .grav_utils import read_icgem_coeff
+from .grav_utils import get_potential
 
 
 #TODO could add data directory structure for loading coeff if dir is passed
@@ -20,16 +21,21 @@ class GravPot():
                  lmax: int=50):
         """Ititialize the GravPot Class
 
+        Position (r, lat, lon) needs to be in an Earth Centered Earth Fixed
+        (ECEF) coordinate frame.     
+        Units are m and radians for position (r, lat, lon).
+        The Gravatational Potential is calculated in units of m^2/s^2.
+
         Parameters
         ----------
         r : npt.ArrayLike, optional
-            An array of radial positions (meters), 
+            An array of radial positions (ECEF - meters), 
             by default np.array(6771000.0,ndmin=1)
         lat : npt.ArrayLike, optional
-            An array of latitude positions (radians), 
+            An array of latitude positions (ECEF - radians), 
             by default np.array(0,ndmin=1)
         lon : npt.ArrayLike, optional
-            An array of longitude positions (radians), 
+            An array of longitude positions (ECEF - radians), 
             by default np.array(np.pi,ndmin=1)
         pot_file : str, optional
             ICGEM potential file used to derive the gravatational
@@ -57,7 +63,7 @@ class GravPot():
 
         if os.path.isfile(pot_file):
             self.load_coeff()
-    
+
     def load_coeff(self, pot_file: str =None):
         """Load ICGEM clm, slm potential coefficients.
 
@@ -92,6 +98,8 @@ class GravPot():
         .grav_utils.get_potential is used to initially derive all required
         values which are then passed to .grav_utils._get_potential_numba_core
         which uses numba and jit to improve the performace of the calculation.
+
+        The Gravatational Potential is calculated in units of m^2/s^2.
 
         Raises
         ------
