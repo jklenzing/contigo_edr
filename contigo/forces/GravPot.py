@@ -8,15 +8,40 @@ import os.path
 
 #TODO could add data directory structure for loading coeff if dir is passed
 #TODO typing
+#TODO do we want print statements to say whats happening
 
 class GravPot():
+    """Class to derive gravatational potential for a set of ECEF coordinates.
+    """
+    def __init__(self, r: npt.ArrayLike=np.array(6771000.0,ndmin=1),
+                 lat: npt.ArrayLike=np.array(0,ndmin=1),
+                 lon: npt.ArrayLike=np.array(np.pi,ndmin=1),
+                 pot_file: str = 'EIGEN-2.gfc',
+                 lmax: int=50):
+        """Ititialize the GravPot Class
 
-    def __init__(self, r: npt.ArrayLike=[6771000.0], 
-                 lat: npt.ArrayLike=[0], 
-                 lon: npt.ArrayLike=[np.pi],
-                 pot_file: str = 'EIGEN-2.gfc', 
-                 lmax: int=None):
-        
+        Parameters
+        ----------
+        r : npt.ArrayLike, optional
+            An array of radial positions (meters), 
+            by default np.array(6771000.0,ndmin=1)
+        lat : npt.ArrayLike, optional
+            An array of latitude positions (radians), 
+            by default np.array(0,ndmin=1)
+        lon : npt.ArrayLike, optional
+            An array of longitude positions (radians), 
+            by default np.array(np.pi,ndmin=1)
+        pot_file : str, optional
+            ICGEM potential file used to derive the gravatational
+            potential, uses .grav_utils.read_icgem_coeff which returns
+            clm, slm, and metadata
+            by default 'EIGEN-2.gfc'
+        lmax : int, optional
+            Maximum degree/order for deriving the gravatational potential. 
+            If lmax is larger then the max degree/order of the loaded potential
+            file (lload) then lmax is set to lload, 
+            by default 50
+        """
         r = np.asarray(r)
         if r.ndim == 0: r = r.reshape(1)
         lat = np.asarray(lat)
@@ -31,10 +56,18 @@ class GravPot():
         self.lmax = lmax
 
         if os.path.isfile(pot_file):
-            print('loading')
             self.load_coeff()
     
     def load_coeff(self, pot_file: str =None):
+        """Load ICGEM clm, slm potential coefficients.
+
+        Parameters
+        ----------
+        pot_file : str, optional
+            ICGEM potential file used to derive the gravatational
+            potential, uses .grav_utils.read_icgem_coeff which returns
+            clm, slm, and metadata, by default None
+        """        
         # potential file to use
         if pot_file:
             self.pot_file = pot_file
@@ -51,12 +84,29 @@ class GravPot():
             self.lmax = cs_meta['lmax']
 
     def get_pot(self):
+        """Derive Potential.
+
+        Potential is derived using normalize Legendre Coefficients from
+        pyshtools.
+
+        .grav_utils.get_potential is used to initially derive all required
+        values which are then passed to .grav_utils._get_potential_numba_core
+        which uses numba and jit to improve the performace of the calculation.
+
+        Raises
+        ------
+        ValueError
+            If potential coeffecients haven't been loaded.
+        ValueError
+            If the size of the position values, r, lat, lon are not the same.
+        """
+        # check to make r, lat, lon are the same size       
         if not hasattr(self, 'clm') or not hasattr(self, 'slm'):
             raise ValueError('No coeffecients have been loaded, use load_coef( )')
-        
+
         if len(self.r) != len(self.lat) or len(self.r) != len(self.lon):
             raise ValueError('r, lat, and lon must be same length')
-        
+
         self.gravpot = np.array([get_potential(rr, rlat, rlon,
                     self.clm, self.slm, self.GM, self.r0, lmax=self.lmax)
                     for rr, rlat, rlon in zip(self.r,self.lat,self.lon)])
