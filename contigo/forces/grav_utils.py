@@ -64,10 +64,13 @@ def get_potential(r, lat, lon, clm, slm, gm, r0, lmax=50):
     to _get_potential_numba_core which uses Numba and JIT to perform
     the derivation faster, namely the sum of the double for loop
 
+    The units of r, gm, and r0 should be consitent. For example if r is
+    kilometers the r0 should be in kilometers and GM in km^3/s^2
+
     Parameters
     ----------
     r : float
-        Radial location (ECEF - meters)
+        Radial location (ECEF - distance)
     lat : float
         Latitude location (ECEF - radians)
     lon : float
@@ -77,9 +80,9 @@ def get_potential(r, lat, lon, clm, slm, gm, r0, lmax=50):
     slm : _type_
         S_lm coeffecients.
     gm :float
-        Gravatational Potential Constant of object (m^3/s^2)
+        Gravatational Potential Constant of object (distance^3/s^2)
     r0 : float
-        Radius of object (meters)
+        Radius of object (distance)
     lmax : int, optional
         Max degree/order for potential derivation, by default 50
 
