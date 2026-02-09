@@ -88,8 +88,8 @@ class GravPot():
             self.pot_file = pot_file
 
         self.clm, self.slm, cs_meta = read_icgem_coeff(self.pot_file)
-        self.r0 = cs_meta['r0']/1000. # convert to km
-        self.GM = cs_meta['GM']/(1000.**3) # convert to km^3/s^2
+        self.r0 = cs_meta['r0']
+        self.GM = cs_meta['GM']
         # check the lmax of the potential file
         if not self.lmax:
             self.lmax = cs_meta['lmax']

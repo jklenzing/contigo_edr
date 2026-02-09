@@ -21,8 +21,8 @@ def read_icgem_coeff(file_path: str, encoding: str ="ISO-8859-1"):
     slm : 2-D np.array of shape [l,m] holding the c coeffecients for the spherical 
         harmonics     
     dictionary containg the meta data from the file. 
-        GM - gravatational constant of object
-        r0 - radius of object
+        GM - gravatational constant of object (km^3/s^2)
+        r0 - radius of object (km)
         
     Reference
     ---------
@@ -55,7 +55,7 @@ def read_icgem_coeff(file_path: str, encoding: str ="ISO-8859-1"):
                 gm = float(row[1])
 
 
-    return clm, slm, {'prodcut':product,'r0':r0, 'GM':gm, 'lmax':lmax}
+    return clm, slm, {'prodcut':product,'r0':r0/1000., 'GM':gm/(1000.**3), 'lmax':lmax}
 
 def get_potential(r, lat, lon, clm, slm, gm, r0, lmax=50):
     """Derive Gravatational Potential
@@ -70,7 +70,7 @@ def get_potential(r, lat, lon, clm, slm, gm, r0, lmax=50):
     Parameters
     ----------
     r : float
-        Radial location (ECEF - distance)
+        Radial location (ECEF - length)
     lat : float
         Latitude location (ECEF - radians)
     lon : float
@@ -80,16 +80,16 @@ def get_potential(r, lat, lon, clm, slm, gm, r0, lmax=50):
     slm : _type_
         S_lm coeffecients.
     gm :float
-        Gravatational Potential Constant of object (distance^3/s^2)
+        Gravatational Potential Constant of object (length^3/s^2)
     r0 : float
-        Radius of object (distance)
+        Radius of object (length)
     lmax : int, optional
         Max degree/order for potential derivation, by default 50
 
     Returns
     -------
     float
-        Gravatation Potential (m^2/s^2)
+        Gravatation Potential (length^2/s^2)
     """
     # Get normalized Legendre functions at the target latitude
     # Note: 'geodesy' normalization is required for EGM96
