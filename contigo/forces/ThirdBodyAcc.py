@@ -69,6 +69,3 @@ class ThirdBodyAcc():
     
     def get_body_pos(self):
         return self.bd_ecef
-
-        
-
