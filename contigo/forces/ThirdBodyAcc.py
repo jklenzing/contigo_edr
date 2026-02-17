@@ -1,11 +1,18 @@
+import posixpath
+import urllib.parse
+from pathlib import Path
+from os import path, makedirs
+from datetime import datetime
+
 import pandas as pd
 import numpy as np
 import numpy.typing as npt
-
 import spiceypy as spice
 
 from .tba_utils import tba_pairwise_numba
 from .constants import GMc
+
+from ..utils import dl_file, wf_mtime
 
 class ThirdBodyAcc():
 
@@ -17,13 +24,14 @@ class ThirdBodyAcc():
                  scale: str | None = None,
                  ephemeris: str='de440s'):
     
-
-        #need to furnish spice kernels here
-
         # allowed ephemeris to load
         allowed_eph = ['de440','de440s']
         if ephemeris in allowed_eph:
             eph_sh = ephemeris[0:5]
+
+        sp_kernels = self.dl_kernels(ephemeris)
+        for fp in sp_kernels:
+            spice.furnsh(fp)
 
         # allowed time scales for getting third body accelerations
         scale = scale.upper()
@@ -63,6 +71,58 @@ class ThirdBodyAcc():
 
         self.bd_acc = bd_acc
         self.bd_ecef = bd_ecef
+
+    def dl_kernels(self, ephemeris):
+
+        base_url = 'https://naif.jpl.nasa.gov'
+        base_pth = '/pub/naif/generic_kernels'
+        
+        ephem_d = 'spk/planets'
+        leaps_d = 'lsk'
+        pck_d = 'pck'
+
+        ephem_f = f'{ephemeris}.bsp'
+        leaps_f = 'naif0012.tls'
+        pck_f = 'earth_latest_high_prec.bpc'
+
+        ephem_url = urllib.parse.urljoin(base_url,
+                                      posixpath.join(base_pth,ephem_d,ephem_f))
+        leaps_url = urllib.parse.urljoin(base_url,
+                                      posixpath.join(base_pth,leaps_d,leaps_f))
+        pck_url = urllib.parse.urljoin(base_url,
+                                    posixpath.join(base_path,pck_d,pck_f))
+
+        # find directory of module
+        # module directory/swdata/ is where the data is stored
+        file_path = Path(__file__).resolve()
+        data_path = file_path / '..' / 'data'
+        data_path = data_path.resolve()
+
+        # create it if it doesn't exist
+        if not data_path.exists():
+            makedirs(data_path)
+
+        for url, file in zip([ephem_url,leaps_url,pck_url],[ephem_f,leaps_f,pck_f]):
+            # create file names
+            fp = path.join(data_path,file)
+            if not path.exists(fp):
+                dl_file(url,fp)
+            else:
+                #check for modification times
+                loc_tz = datetime.now().astimezone().tzinfo
+                gmt_tz = tz.gettz('GMT')
+                
+                mod_file = datetime.fromtimestamp(path.getmtime(fp), tz=loc_tz)
+                mod_file = mod_file.astimezone(gmt_tz)
+                mod_url = wf_mtime(url)
+                
+                if mod_url == None:
+                    print(f'Could not determine modification time of {url}')
+                elif mod_url > mod_file:
+                    print(f'Downloading new version of {url}')
+                    dl_file(url,fp)
+            
+        return [path.join(data_path,fp) for fp in [ephem_f,leaps_f,pck_f]]
 
     def get_tba(self):
         return self.bd_acc
