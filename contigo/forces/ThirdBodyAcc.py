@@ -3,6 +3,7 @@ import urllib.parse
 from pathlib import Path
 from os import path, makedirs
 from datetime import datetime
+from dateutil import tz
 
 import pandas as pd
 import numpy as np
@@ -18,9 +19,9 @@ class ThirdBodyAcc():
 
     def __init__(self, 
                  spos: npt.ArrayLike=np.array([6771.0,0,0],ndmin=2),
-                 stime: npt.NDArray[np.datetime64]=np.array(pd.to_datetime('2020-01-01')),
+                 stime: npt.ArrayLike=pd.Series(pd.to_datetime('2020-01-01')),
                  body: npt.ArrayLike=['SUN'],
-                 GM: npt.ArratyLike | None = None,
+                 GM: npt.ArrayLike | None = None,
                  scale: str | None = None,
                  ephemeris: str='de440s'):
     
@@ -29,28 +30,42 @@ class ThirdBodyAcc():
         if ephemeris in allowed_eph:
             eph_sh = ephemeris[0:5]
 
+        # download and load the SPICE kernels
+        # we want to use
+        # checks if the kernels exists or if they've
+        # changed online before downloading
+        # also checks if they've already been loaded
+        # currently loads leap seconds (.tls), ephemeris (.bsp), and 
+        # Earth orientation data (.bpc)
         sp_kernels = self.dl_kernels(ephemeris)
+        sp_kcnt = spice.ktotal('ALL')
+        sp_loaded = [spice.kdata(i,'ALL')[0] for i in range(sp_kcnt)]
         for fp in sp_kernels:
-            spice.furnsh(fp)
+            if fp in sp_loaded:
+                print(f'Kernel already loaded - {fp}')
+            else:
+                print(f'Loading Kernel {fp}')
+                spice.furnsh(fp) # need to check if kernels are loaded
 
         # allowed time scales for getting third body accelerations
-        scale = scale.upper()
         allowed_scales = ['GPS','TAI','UTC','ET','TDB']
         if not scale:
             raise ValueError(f'scale must be one of {allowed_scales}')
-        elif scale not in allowed_scales:
+        
+        scale = scale.upper()
+        if scale not in allowed_scales:
             raise ValueError(f'Incorrect scale {scale}, scale must be one of {allowed_scales}')
 
         # calculate the seconds past j2000 to convert
         # to SPICE ET Ephemeris time (in the SPICE system,
         # this is equivalent to TDB time)
         j2000 = pd.Timestamp('2000-01-01 12:00:00')
-        spj2000 = ((stime - j2000).dt.total_seconds()).to_list()
+        spj2000 = ((pd.Series(stime) - j2000).dt.total_seconds()).to_list()
 
         # set all needed attributes
         self.et = [spice.unitim(sp_in,scale,'ET') for sp_in in spj2000]
         self.spos = spos
-        self.body = [bd.upper for bd in body]
+        self.body = [bd.upper() for bd in body]
         self.stime = pd.to_datetime(stime)
         if not GM:
             self.GM = [GMc[eph_sh][bd] for bd in self.body]
@@ -90,12 +105,12 @@ class ThirdBodyAcc():
         leaps_url = urllib.parse.urljoin(base_url,
                                       posixpath.join(base_pth,leaps_d,leaps_f))
         pck_url = urllib.parse.urljoin(base_url,
-                                    posixpath.join(base_path,pck_d,pck_f))
+                                    posixpath.join(base_pth,pck_d,pck_f))
 
         # find directory of module
         # module directory/swdata/ is where the data is stored
         file_path = Path(__file__).resolve()
-        data_path = file_path / '..' / 'data'
+        data_path = file_path / '..' / '..' / 'data'
         data_path = data_path.resolve()
 
         # create it if it doesn't exist
