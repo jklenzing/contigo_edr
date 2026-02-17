@@ -16,4 +16,4 @@ jpl_de440 = {'MERCURY':22031.868551,
              'unit':'KM**3/SEC**2'
              }
 
-constants = {'de440':jpl_de440}
+GMc = {'de440':jpl_de440}
