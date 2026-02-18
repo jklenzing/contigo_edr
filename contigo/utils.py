@@ -1,3 +1,7 @@
+"""Utilites for the contigo module
+
+added: 17/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
+"""
 import pathlib
 import functools
 import shutil
