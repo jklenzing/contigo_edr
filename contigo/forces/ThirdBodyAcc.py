@@ -79,8 +79,8 @@ class ThirdBodyAcc():
     def calc_tba(self):
 
         # get the body positions in ecef
-        bd_ecef = [spice.spkpos(bd,self.et,'ITR93','NONE','EARTH')[0]
-                   for bd in self.body]
+        bd_ecef = np.array([spice.spkpos(bd,self.et,'ITRF93','NONE','EARTH')[0]
+                   for bd in self.body])
         
         bd_acc = tba_pairwise_numba(self.spos, bd_ecef, self.GM)
 
@@ -126,21 +126,21 @@ class ThirdBodyAcc():
                 #check for modification times
                 loc_tz = datetime.now().astimezone().tzinfo
                 gmt_tz = tz.gettz('GMT')
-                
+
                 mod_file = datetime.fromtimestamp(path.getmtime(fp), tz=loc_tz)
                 mod_file = mod_file.astimezone(gmt_tz)
                 mod_url = wf_mtime(url)
-                
+
                 if mod_url == None:
                     print(f'Could not determine modification time of {url}')
                 elif mod_url > mod_file:
                     print(f'Downloading new version of {url}')
                     dl_file(url,fp)
-            
+
         return [path.join(data_path,fp) for fp in [ephem_f,leaps_f,pck_f]]
 
     def get_tba(self):
         return self.bd_acc
-    
+
     def get_body_pos(self):
         return self.bd_ecef

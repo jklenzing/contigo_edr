@@ -1,8 +1,9 @@
 from math import sqrt
 import numba
+import numpy as np
 
 
-@numba.jit(nopython=True,parallel=True, fastmath=True)
+@numba.jit(nopython=True, parallel=True, fastmath=True)
 def tba_pairwise_numba(r_sat, r_bodies, mu_bodies):
     """
     Per-body third-body acceleration.
