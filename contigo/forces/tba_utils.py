@@ -1,3 +1,10 @@
+"""Derive third body accelerations for spacecraft.
+
+Use numba and jit to speed up calculations
+
+added: 17/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
+"""
+
 from math import sqrt
 import numba
 import numpy as np
@@ -5,9 +12,10 @@ import numpy as np
 
 @numba.jit(nopython=True, parallel=True, fastmath=True)
 def tba_pairwise_numba(r_sat, r_bodies, mu_bodies):
-    """
-    Per-body third-body acceleration.
+    """Per-body third-body acceleration.
 
+    Units should be consistent across positions and Mass parameters.
+    
     Parameters
     ----------
     r_sat : (N,3) array
@@ -15,7 +23,7 @@ def tba_pairwise_numba(r_sat, r_bodies, mu_bodies):
     r_bodies : (B,N,3) array
         Third-body position vectors
     mu_bodies : (B,) array
-        Gravitational parameters
+        Mass parameters parameters
 
     Returns
     -------
@@ -23,7 +31,7 @@ def tba_pairwise_numba(r_sat, r_bodies, mu_bodies):
         Acceleration due to each body
     """
 
-    B, N, _ = r_bodies.shape
+    B, N, x = r_bodies.shape
     a = np.zeros_like(r_bodies)
 
     for i in numba.prange(N):
