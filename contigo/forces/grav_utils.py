@@ -1,3 +1,11 @@
+"""
+Utilities for deriving gravatational potential.
+
+Uses numba and jit to perform faster calculations of gravatational potential.
+
+added: 03/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
+"""
+
 import pyshtools
 import numba
 import numpy as np
