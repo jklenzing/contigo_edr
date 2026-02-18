@@ -1,3 +1,7 @@
+"""Derive third body accelerations for an Earth orbiting spacecraft.
+
+added: 17/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
+"""
 import posixpath
 import urllib.parse
 from pathlib import Path
@@ -133,7 +137,7 @@ class ThirdBodyAcc():
         # get the body positions in ecef
         bd_ecef = np.array([spice.spkpos(bd,self.et,'ITRF93','NONE','EARTH')[0]
                    for bd in self.body])
-        
+
         bd_acc = tba_pairwise_numba(self.spos, bd_ecef, self.GM)
 
         self.bd_acc = bd_acc
