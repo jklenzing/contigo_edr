@@ -16,7 +16,8 @@ from .constants import GMc
 from ..utils import dl_file, wf_mtime
 
 class ThirdBodyAcc():
-
+    """Deriving Third Body Acceleration using JPL SPICE
+    """
     def __init__(self, 
                  spos: npt.ArrayLike=np.array([6771.0,0,0],ndmin=2),
                  stime: npt.ArrayLike=pd.Series(pd.to_datetime('2020-01-01')),
@@ -24,7 +25,52 @@ class ThirdBodyAcc():
                  GM: npt.ArrayLike | None = None,
                  scale: str | None = None,
                  ephemeris: str='de440s'):
-    
+        """Initialize the ThirdBodyAcc Class for deriving accelleration from third
+        bodies such as the Sun and Moon.
+
+        Position is a (n,3) array that needs to be in Earth Centered Earth Fixed
+        (ECEF) coordinate frame. Units are km's. 
+        
+        The body GM constants are in units of km^3/s^2. 
+
+        Uses the SPICE (Spacecraft, Planet, Instrument, C-matrix, Events) observation 
+        geometry information system and Kernels from JPLs Navigation and Ancillary 
+        Information Facility (NAIF) (https://naif.jpl.nasa.gov/naif/index.html).
+        
+        Required JPL SPICE kernels are downloaded as needed and when changed on the web.
+
+        Parameters
+        ----------
+        spos : npt.ArrayLike (n,3), optional
+            An array of spacecraft positions (ECEF - kilometers), 
+            by default np.array([6771.0,0,0],ndmin=2)
+        stime : npt.ArrayLike (n), optional
+            An array of spacecraft times for which the position of body are retrieved.
+            The scale of the time is needed in order to derive JPL SPICE ephemeris 
+            time (ET). By default pd.Series(pd.to_datetime('2020-01-01')).
+        body : npt.ArrayLike, optional
+            A list of bodies for which to calculate accelerations at the location 
+            of a spacecraft (spos), by default ['SUN'].
+        GM : npt.ArrayLike | None, optional
+            Mass parameters for the bodies in body. Should be in the same order as body.
+            If nothing is passed they are loaded from the constants module which uses
+            JPLs de440 mass parameters, by default None.
+        scale : str | None, optional
+            Time scale of stime; allowed values are 'GPS','TAI','UTC','ET','TDB'.
+            By default None but one is required and a Value error will be thrown if it 
+            is not passed or if it is not one of the allowed values.
+        ephemeris : str, optional
+            JPL SPICE ephemeris file to use; allowed values are de440 and de440s. 's'
+            denotes the smaller version which covers a shorter time frame. By default 
+            'de440s'
+
+        Raises
+        ------
+        ValueError
+            ephemeris not in allowed ephemeris
+        ValueError
+            scale not in allowed scales
+        """    
         # allowed ephemeris to load
         allowed_eph = ['de440','de440s']
         if ephemeris in allowed_eph:
@@ -77,7 +123,13 @@ class ThirdBodyAcc():
         self.bd_acc = None
 
     def calc_tba(self):
+        """Derives third body accelerations from spacecraft positions for solar
+        system bodies.
 
+        Uses the SPICE (Spacecraft, Planet, Instrument, C-matrix, Events) observation 
+        geometry information system and Kernels from JPLs Navigation and Ancillary 
+        Information Facility (NAIF). 
+        """
         # get the body positions in ecef
         bd_ecef = np.array([spice.spkpos(bd,self.et,'ITRF93','NONE','EARTH')[0]
                    for bd in self.body])
@@ -88,7 +140,21 @@ class ThirdBodyAcc():
         self.bd_ecef = bd_ecef
 
     def dl_kernels(self, ephemeris):
+        """Download required JPL SPICE kernels.
 
+        Download ephemeris, leap second, and Earth orientation Kernels from JPLs 
+        Navigation and Ancillary Information Facility (NAIF). 
+
+        Parameters
+        ----------
+        ephemeris : _type_
+            _description_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
         base_url = 'https://naif.jpl.nasa.gov'
         base_pth = '/pub/naif/generic_kernels'
         
@@ -140,7 +206,21 @@ class ThirdBodyAcc():
         return [path.join(data_path,fp) for fp in [ephem_f,leaps_f,pck_f]]
 
     def get_tba(self):
+        """Get the Third Body Accelerations.
+
+        Returns
+        -------
+        np.Array
+            Third body accelerations
+        """        
         return self.bd_acc
 
     def get_body_pos(self):
+        """Get the Third Body ECEF Positions.
+
+        Returns
+        -------
+        np.Array
+            Third body positions in ECEF coordinates.
+        """
         return self.bd_ecef
