@@ -1,3 +1,7 @@
+"""Derive gravatational potential of Earth for a set of ECEF coordinates.
+
+added: 03/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
+"""
 import os.path
 import numpy as np
 import numpy.typing as npt
@@ -19,11 +23,11 @@ class GravPot():
                  lon: npt.ArrayLike=np.array(np.pi,ndmin=1),
                  pot_file: str = 'EIGEN-2.gfc',
                  lmax: int=50):
-        """Ititialize the GravPot Class
+        """Ititialize the GravPot Class to calculate Earth gravitational potential.
 
         Position (r, lat, lon) needs to be in an Earth Centered Earth Fixed
         (ECEF) coordinate frame.     
-        Units are m and radians for position (r, lat, lon).
+        Units are km and radians for position (r, lat, lon).
         The Gravatational Potential is calculated in units of km^2/s^2.
 
         Parameters
