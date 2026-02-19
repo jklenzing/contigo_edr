@@ -3,6 +3,7 @@
 added: 03/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
 """
 import os.path
+import logging
 import numpy as np
 import numpy.typing as npt
 
@@ -12,6 +13,9 @@ from .grav_utils import read_icgem_coeff
 from .grav_utils import get_potential
 
 #TODO do we want print statements to say whats happening
+
+logger = logging.getLogger(__name__)
+
 
 class GravPot():
     """Class to derive gravatational potential for a set of ECEF coordinates.
@@ -69,8 +73,10 @@ class GravPot():
         # Modeled Field Variables Which are Loaded
         if (config.state['pot_coef_loaded'] is True and
                 config.state['pot_file'] == os.path.basename(self.pot_file)):
-            
-            print(f'Loading Potential coeffecients from current state which used {config.state['pot_file']}.')
+
+            logger.info('Loading Potential coeffecients from current ' \
+            'state which used %s.',  config.state['pot_file'])
+
             self.clm = config.state['pot_clm']
             self.slm = config.state['pot_slm']
             self.r0 = config.state['pot_r0']
@@ -93,6 +99,8 @@ class GravPot():
             potential, uses .grav_utils.read_icgem_coeff which returns
             clm, slm, and metadata, by default None
         """
+        logger.info('Loading potential file %s', self.pot_file)
+
         self.clm, self.slm, cs_meta = read_icgem_coeff(self.pot_file)
         self.r0 = cs_meta['r0']
         self.GM = cs_meta['GM']

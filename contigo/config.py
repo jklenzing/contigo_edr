@@ -3,9 +3,12 @@
 added: 19/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
 """
 
+import logging
+
 from os import makedirs
 from pathlib import Path
 
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
 def data_path():
     # setup data dir 
