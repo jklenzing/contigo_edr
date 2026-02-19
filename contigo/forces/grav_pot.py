@@ -6,9 +6,12 @@ import os.path
 import numpy as np
 import numpy.typing as npt
 
+import contigo.config as config
 
 from .grav_utils import read_icgem_coeff
 from .grav_utils import get_potential
+
+
 
 
 #TODO could add data directory structure for loading coeff if dir is passed
@@ -69,15 +72,23 @@ class GravPot():
         self.gravpot = None
 
         # Modeled Field Variables Which are Loaded
-        self.clm = None
-        self.slm = None
-        self.r0 = None
-        self.GM = None
-
-        if os.path.isfile(pot_file):
+        if (config.state['pot_coef_loaded'] is True and
+                config.state['pot_file'] == os.path.basename(self.pot_file)):
+            
+            print(f'Loading Potential coeffecients from current state which used {config.state['pot_file']}.')
+            self.clm = config.state['pot_clm']
+            self.slm = config.state['pot_slm']
+            self.r0 = config.state['pot_r0']
+            self.GM = config.state['pot_GM']
+        elif os.path.isfile(pot_file):
             self.load_coeff()
+        elif os.path.isfile(os.path.join(config.DATA_DIR,self.pot_file)):
+            self.pot_file = os.path.join(config.DATA_DIR,self.pot_file) 
+            self.load_coeff()
+        else:
+            raise ValueError(f'Potential file {self.pot_file} cannot be found.')
 
-    def load_coeff(self, pot_file: str =None):
+    def load_coeff(self):
         """Load ICGEM clm, slm potential coefficients.
 
         Parameters
@@ -86,11 +97,7 @@ class GravPot():
             ICGEM potential file used to derive the gravatational
             potential, uses .grav_utils.read_icgem_coeff which returns
             clm, slm, and metadata, by default None
-        """        
-        # potential file to use
-        if pot_file:
-            self.pot_file = pot_file
-
+        """
         self.clm, self.slm, cs_meta = read_icgem_coeff(self.pot_file)
         self.r0 = cs_meta['r0']
         self.GM = cs_meta['GM']
@@ -101,6 +108,16 @@ class GravPot():
             print('Defined lmax is to large.')
             print('Setting lmax to that in the potential file.')
             self.lmax = cs_meta['lmax']
+
+        # Set potential state variables
+        # so we don't have to keep loading 
+        # coeffecients
+        config.state['pot_file'] = os.path.basename(self.pot_file)
+        config.state['pot_coef_loaded'] = True
+        config.state['pot_clm'] = self.clm
+        config.state['pot_slm'] = self.slm
+        config.state['pot_r0'] = self.r0
+        config.state['pot_GM'] = self.GM
 
     def calc_pot(self):
         """Derive Potential.
