@@ -12,8 +12,6 @@ import contigo.config as config
 from .grav_utils import read_icgem_coeff
 from .grav_utils import get_potential
 
-#TODO do we want print statements to say whats happening
-
 logger = logging.getLogger(__name__)
 
 
@@ -142,7 +140,7 @@ class GravPot():
             If the size of the position values, r, lat, lon are not the same.
         """
         # check if coeffecients have been loaded
-        if self.clm is None:     
+        if self.clm is None:
             raise ValueError('No coeffecients have been loaded, use load_coef( )')
         # check to make r, lat, lon are the same size
         if len(self.r) != len(self.lat) or len(self.r) != len(self.lon):
