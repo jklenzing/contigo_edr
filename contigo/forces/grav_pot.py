@@ -15,7 +15,7 @@ from .grav_utils import get_potential
 logger = logging.getLogger(__name__)
 
 
-class GravPot():
+class GravPot:
     """Class to derive gravatational potential for a set of ECEF coordinates.
     """
     def __init__(self, r: npt.ArrayLike=np.array(6771.0,ndmin=1),
