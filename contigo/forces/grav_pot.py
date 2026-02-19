@@ -11,11 +11,6 @@ import contigo.config as config
 from .grav_utils import read_icgem_coeff
 from .grav_utils import get_potential
 
-
-
-
-#TODO could add data directory structure for loading coeff if dir is passed
-#TODO typing
 #TODO do we want print statements to say whats happening
 
 class GravPot():
