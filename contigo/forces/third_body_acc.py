@@ -14,20 +14,19 @@ import numpy as np
 import numpy.typing as npt
 import spiceypy as spice
 
-from .tba_utils import tba_pairwise_numba
-from ..constants import GMc
-
-
 import contigo.utils as utils
 import contigo.config as config
+
+from .tba_utils import tba_pairwise_numba
+from ..constants import GMc
 
 class ThirdBodyAcc:
     """Deriving Third Body Acceleration using JPL SPICE
     """
     def __init__(self, 
-                 spos: npt.ArrayLike=np.array([6771.0,0,0],ndmin=2),
-                 stime: npt.ArrayLike=pd.Series(pd.to_datetime('2020-01-01')),
-                 body: npt.ArrayLike=['SUN'],
+                 spos: npt.ArrayLike | None = None,
+                 stime: npt.ArrayLike | None = None,
+                 body: npt.ArrayLike | None = None,
                  GM: npt.ArrayLike | None = None,
                  scale: str | None = None,
                  ephemeris: str='de440s'):
@@ -77,6 +76,14 @@ class ThirdBodyAcc:
         ValueError
             scale not in allowed scales
         """
+        # set defaults 
+        if spos is None:
+            spos = np.array([[6771.0, 0.0, 0.0]])
+        if stime is None:
+            stime = pd.Series(pd.to_datetime("2020-01-01"))
+        if body is None:
+            body = ["SUN"]
+
         # allowed ephemeris to load
         allowed_eph = ['de440','de440s']
         if ephemeris in allowed_eph:
@@ -93,7 +100,7 @@ class ThirdBodyAcc:
         if scale not in allowed_scales:
             raise ValueError(f'Incorrect scale {scale}, scale must be one of {allowed_scales}')
 
-        self.spos = spos
+        self.spos = np.asarray(spos, dtype=float)
         if self.spos.ndim != 2 or self.spos.shape[1] != 3:
             raise ValueError("spos must have shape (N,3)")
 
@@ -104,10 +111,10 @@ class ThirdBodyAcc:
         self.body = [bd.upper() for bd in body]
         
         self.scale = scale
-        if not GM:
-            self.GM = [GMc[eph_sh][bd] for bd in self.body]
+        if GM is None:
+            self.GM = np.array([GMc[eph_sh][bd] for bd in self.body],dtype=float)
         else:
-            self.GM = GM
+            self.GM = np.asarray(GM, dtype=float)
 
         if len(self.body) != len(self.GM):
             raise ValueError("body and GM must be same length")   
@@ -129,11 +136,11 @@ class ThirdBodyAcc:
         # calculate the seconds past j2000 to convert
         # to SPICE ET Ephemeris time (in the SPICE system,
         # this is equivalent to TDB time)
-        if self.stime.dt.tz is not None and str(self.stime.dt.tz) != "UTC":
+        if self.stime.dt.tz is not None and self.stime.dt.tz != tz.UTC:
             print(str(self.stime.dt.tz))
             raise ValueError('stime should be time zone naive or UTC')
         j2000 = pd.Timestamp('2000-01-01 12:00:00')
-        spj2000 = ((pd.Series(self.stime) - j2000).dt.total_seconds()).to_list()
+        spj2000 = ((self.stime - j2000).dt.total_seconds()).to_list()
 
         # set all needed attributes
         et = [spice.unitim(sp_in,self.scale,'ET') for sp_in in spj2000]
@@ -168,7 +175,7 @@ class ThirdBodyAcc:
         sp_kernels = [path.join(config.DATA_DIR,fp) for fp in [ephem_f,leaps_f,pck_f]]
 
         # check if we've already attempted to download kernels
-        if not config.state['kernel_downloaded']:
+        if config.state['kernel_downloaded'] is False:
             self.dl_kernels(ephem_f, leaps_f, pck_f)
 
         # check if kernels are already loaded, load them if not
