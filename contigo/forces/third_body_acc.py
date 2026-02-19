@@ -4,8 +4,8 @@ added: 17/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
 """
 import posixpath
 import urllib.parse
-from pathlib import Path
-from os import path, makedirs
+
+from os import path
 from datetime import datetime
 from dateutil import tz
 
@@ -15,11 +15,13 @@ import numpy.typing as npt
 import spiceypy as spice
 
 from .tba_utils import tba_pairwise_numba
-from .constants import GMc
+from ..constants import GMc
 
-from ..utils import dl_file, wf_mtime
 
-class ThirdBodyAcc():
+import contigo.utils as utils
+import contigo.config as config
+
+class ThirdBodyAcc:
     """Deriving Third Body Acceleration using JPL SPICE
     """
     def __init__(self, 
@@ -74,28 +76,13 @@ class ThirdBodyAcc():
             ephemeris not in allowed ephemeris
         ValueError
             scale not in allowed scales
-        """    
+        """
         # allowed ephemeris to load
         allowed_eph = ['de440','de440s']
         if ephemeris in allowed_eph:
             eph_sh = ephemeris[0:5]
-
-        # download and load the SPICE kernels
-        # we want to use
-        # checks if the kernels exists or if they've
-        # changed online before downloading
-        # also checks if they've already been loaded
-        # currently loads leap seconds (.tls), ephemeris (.bsp), and 
-        # Earth orientation data (.bpc)
-        sp_kernels = self.dl_kernels(ephemeris)
-        sp_kcnt = spice.ktotal('ALL')
-        sp_loaded = [spice.kdata(i,'ALL')[0] for i in range(sp_kcnt)]
-        for fp in sp_kernels:
-            if fp in sp_loaded:
-                print(f'Kernel already loaded - {fp}')
-            else:
-                print(f'Loading Kernel {fp}')
-                spice.furnsh(fp) # need to check if kernels are loaded
+        else:
+            raise ValueError(f'ephemeris must be on of allowed {allowed_eph}')
 
         # allowed time scales for getting third body accelerations
         allowed_scales = ['GPS','TAI','UTC','ET','TDB']
@@ -106,25 +93,30 @@ class ThirdBodyAcc():
         if scale not in allowed_scales:
             raise ValueError(f'Incorrect scale {scale}, scale must be one of {allowed_scales}')
 
-        # calculate the seconds past j2000 to convert
-        # to SPICE ET Ephemeris time (in the SPICE system,
-        # this is equivalent to TDB time)
-        j2000 = pd.Timestamp('2000-01-01 12:00:00')
-        spj2000 = ((pd.Series(stime) - j2000).dt.total_seconds()).to_list()
-
-        # set all needed attributes
-        self.et = [spice.unitim(sp_in,scale,'ET') for sp_in in spj2000]
         self.spos = spos
-        self.body = [bd.upper() for bd in body]
+        if self.spos.ndim != 2 or self.spos.shape[1] != 3:
+            raise ValueError("spos must have shape (N,3)")
+
         self.stime = pd.to_datetime(stime)
+        if self.stime.shape[0] != self.spos.shape[0]:
+            raise ValueError("spos and stime must have be (N,3) and (N)")
+
+        self.body = [bd.upper() for bd in body]
+        
+        self.scale = scale
         if not GM:
             self.GM = [GMc[eph_sh][bd] for bd in self.body]
         else:
             self.GM = GM
 
+        if len(self.body) != len(self.GM):
+            raise ValueError("body and GM must be same length")   
+        self.ephemeris = ephemeris
         #attributes used later
         self.bd_ecef = None
         self.bd_acc = None
+
+        self.load_kernels()
 
     def calc_tba(self):
         """Derives third body accelerations from spacecraft positions for solar
@@ -132,10 +124,22 @@ class ThirdBodyAcc():
 
         Uses the SPICE (Spacecraft, Planet, Instrument, C-matrix, Events) observation 
         geometry information system and Kernels from JPLs Navigation and Ancillary 
-        Information Facility (NAIF). 
+        Information Facility (NAIF).
         """
+        # calculate the seconds past j2000 to convert
+        # to SPICE ET Ephemeris time (in the SPICE system,
+        # this is equivalent to TDB time)
+        if self.stime.dt.tz is not None and str(self.stime.dt.tz) != "UTC":
+            print(str(self.stime.dt.tz))
+            raise ValueError('stime should be time zone naive or UTC')
+        j2000 = pd.Timestamp('2000-01-01 12:00:00')
+        spj2000 = ((pd.Series(self.stime) - j2000).dt.total_seconds()).to_list()
+
+        # set all needed attributes
+        et = [spice.unitim(sp_in,self.scale,'ET') for sp_in in spj2000]
+
         # get the body positions in ecef
-        bd_ecef = np.array([spice.spkpos(bd,self.et,'ITRF93','NONE','EARTH')[0]
+        bd_ecef = np.array([spice.spkpos(bd,et,'ITRF93','NONE','EARTH')[0]
                    for bd in self.body])
 
         bd_acc = tba_pairwise_numba(self.spos, bd_ecef, self.GM)
@@ -143,21 +147,57 @@ class ThirdBodyAcc():
         self.bd_acc = bd_acc
         self.bd_ecef = bd_ecef
 
-    def dl_kernels(self, ephemeris):
+    def load_kernels(self):
+        """Download and load the SPICE kernels for deriving body locations
+
+        Checks if an attemp at downloading the kernels has already been done.
+
+        Download will check if files have changed and need to be redownloaded.
+        Checks if kernels are already loaded.
+
+        Loads the kernels.
+
+        Currently loads leap seconds (.tls), ephemeris (.bsp), and Earth orientation 
+        data (.bpc)
+        """
+        # set file names 
+        ephem_f = f'{self.ephemeris}.bsp'
+        leaps_f = 'naif0012.tls'
+        pck_f = 'earth_latest_high_prec.bpc'
+        # get file paths
+        sp_kernels = [path.join(config.DATA_DIR,fp) for fp in [ephem_f,leaps_f,pck_f]]
+
+        # check if we've already attempted to download kernels
+        if not config.state['kernel_downloaded']:
+            self.dl_kernels(ephem_f, leaps_f, pck_f)
+
+        # check if kernels are already loaded, load them if not
+        sp_kcnt = spice.ktotal('ALL')
+        sp_loaded = [spice.kdata(i,'ALL')[0] for i in range(sp_kcnt)]
+        for fp in sp_kernels:
+            if fp in sp_loaded:
+                print(f'Kernel already loaded - {fp}')
+            else:
+                print(f'Loading Kernel {fp}')
+                spice.furnsh(fp) # need to check if kernels are loaded
+
+    def dl_kernels(self, ephem_f: str, leaps_f: str, pck_f:str):
         """Download required JPL SPICE kernels.
 
         Download ephemeris, leap second, and Earth orientation Kernels from JPLs 
         Navigation and Ancillary Information Facility (NAIF). 
 
+        Will check if local files exist. Will download if files on the server are newer
+        then the local files.
+
         Parameters
         ----------
-        ephemeris : _type_
-            _description_
-
-        Returns
-        -------
-        _type_
-            _description_
+        ephem_f :str
+            JPL ephemeris file to download.
+        leaps_f : str
+            JPL leap seconds file to download.
+        pck_f : str
+            JPL Earth orientation file to download.
         """
         base_url = 'https://naif.jpl.nasa.gov'
         base_pth = '/pub/naif/generic_kernels'
@@ -166,10 +206,6 @@ class ThirdBodyAcc():
         leaps_d = 'lsk'
         pck_d = 'pck'
 
-        ephem_f = f'{ephemeris}.bsp'
-        leaps_f = 'naif0012.tls'
-        pck_f = 'earth_latest_high_prec.bpc'
-
         ephem_url = urllib.parse.urljoin(base_url,
                                       posixpath.join(base_pth,ephem_d,ephem_f))
         leaps_url = urllib.parse.urljoin(base_url,
@@ -177,21 +213,11 @@ class ThirdBodyAcc():
         pck_url = urllib.parse.urljoin(base_url,
                                     posixpath.join(base_pth,pck_d,pck_f))
 
-        # find directory of module
-        # module directory/swdata/ is where the data is stored
-        file_path = Path(__file__).resolve()
-        data_path = file_path / '..' / '..' / 'data'
-        data_path = data_path.resolve()
-
-        # create it if it doesn't exist
-        if not data_path.exists():
-            makedirs(data_path)
-
         for url, file in zip([ephem_url,leaps_url,pck_url],[ephem_f,leaps_f,pck_f]):
             # create file names
-            fp = path.join(data_path,file)
+            fp = path.join(config.DATA_DIR,file)
             if not path.exists(fp):
-                dl_file(url,fp)
+                utils.dl_file(url,fp)
             else:
                 #check for modification times
                 loc_tz = datetime.now().astimezone().tzinfo
@@ -199,15 +225,15 @@ class ThirdBodyAcc():
 
                 mod_file = datetime.fromtimestamp(path.getmtime(fp), tz=loc_tz)
                 mod_file = mod_file.astimezone(gmt_tz)
-                mod_url = wf_mtime(url)
+                mod_url = utils.wf_mtime(url)
 
                 if mod_url == None:
                     print(f'Could not determine modification time of {url}')
                 elif mod_url > mod_file:
                     print(f'Downloading new version of {url}')
-                    dl_file(url,fp)
-
-        return [path.join(data_path,fp) for fp in [ephem_f,leaps_f,pck_f]]
+                    utils.dl_file(url,fp)
+        
+        config.state['kernel_downloaded'] = True
 
     def get_tba(self):
         """Get the Third Body Accelerations.
@@ -216,7 +242,9 @@ class ThirdBodyAcc():
         -------
         np.Array
             Third body accelerations
-        """        
+        """
+        if self.bd_acc is None:
+            raise RuntimeError("calc_tba() must be called first")
         return self.bd_acc
 
     def get_body_pos(self):
@@ -227,4 +255,7 @@ class ThirdBodyAcc():
         np.Array
             Third body positions in ECEF coordinates.
         """
+        if self.bd_ecef is None:
+            raise RuntimeError("calc_tba() must be called first")
         return self.bd_ecef
+
