@@ -4,6 +4,7 @@ added: 17/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
 """
 import posixpath
 import urllib.parse
+import logging
 
 from os import path
 from datetime import datetime
@@ -19,6 +20,8 @@ import contigo.config as config
 
 from .tba_utils import tba_pairwise_numba
 from ..constants import GMc
+
+logger = logging.getLogger(__name__)
 
 class ThirdBodyAcc:
     """Deriving Third Body Acceleration using JPL SPICE
@@ -117,7 +120,7 @@ class ThirdBodyAcc:
             self.GM = np.asarray(GM, dtype=float)
 
         if len(self.body) != len(self.GM):
-            raise ValueError("body and GM must be same length")   
+            raise ValueError("body and GM must be same length")
         self.ephemeris = ephemeris
         #attributes used later
         self.bd_ecef = None
@@ -183,9 +186,9 @@ class ThirdBodyAcc:
         sp_loaded = [spice.kdata(i,'ALL')[0] for i in range(sp_kcnt)]
         for fp in sp_kernels:
             if fp in sp_loaded:
-                print(f'Kernel already loaded - {fp}')
+                logger.info('Kernel already loaded - %s', fp)
             else:
-                print(f'Loading Kernel {fp}')
+                logger.info('Loading Kernel - %s', fp)
                 spice.furnsh(fp) # need to check if kernels are loaded
 
     def dl_kernels(self, ephem_f: str, leaps_f: str, pck_f:str):
@@ -224,6 +227,7 @@ class ThirdBodyAcc:
             # create file names
             fp = path.join(config.DATA_DIR,file)
             if not path.exists(fp):
+                logger.info('Downloading kernel - %s', fp)
                 utils.dl_file(url,fp)
             else:
                 #check for modification times
@@ -235,9 +239,9 @@ class ThirdBodyAcc:
                 mod_url = utils.wf_mtime(url)
 
                 if mod_url == None:
-                    print(f'Could not determine modification time of {url}')
+                    logger.info('Could not determine modification time of %s', url)
                 elif mod_url > mod_file:
-                    print(f'Downloading new version of {url}')
+                    logger.info('Downloading new version of %s', url)
                     utils.dl_file(url,fp)
         
         config.state['kernel_downloaded'] = True
