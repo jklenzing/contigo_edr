@@ -264,7 +264,11 @@ class Spacecraft:
         loader = loader or suffix.lstrip(".")
         kwargs = read_kwargs or {}
 
-        if loader in {"csv", "txt", "text"}:
+        base_txt = {"csv", "txt", "text"}
+        zip_txt = {"gz", "bz2", "zip", "xz", "zst",
+                   "tar", "tar.gz", "tar.xz", "tar.bz2"}
+
+        if loader in (base_txt | zip_txt):
             return pd.read_csv(file, **kwargs)
         elif loader in {"hdf", "h5"}:
             return pd.read_hdf(file, **kwargs)
