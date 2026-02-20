@@ -7,24 +7,43 @@ import numpy.typing as npt
 import pandas as pd
 import glob
 
-import .utils.df_sp3
+from .utils import df_sp3
 
 ##TODO Future proof units
 
 @dataclass
 class Spacecraft:
-    """
-    Spacecraft state container with explicit separation between
-    raw user inputs and internal normalized state variables.
+    """Spacecraft class for loading and storing spacecraft state info.
+
+    This is an extended container class for the contigo module
 
     Raw inputs may be provided directly (state, time) OR loaded
     from one or more files on disk. Internal state is always strict
-    and guaranteed after loading.
+    and guaranteed after loading. A simplified container class 
+    SpacecraftState is used to store the finalized internal state. 
 
-    State is assumed to be ECEF:
-    - position  [x, y, z]
-    - velocity  [vx, vy, vz]
-    """
+    The state is assumed to be position [x,y,z], velocity [vx,vy,vz] in ECEF
+    and spacecraft physical properties and ID. 
+
+    Raises:
+        ValueError: _description_
+        ValueError: _description_
+        ValueError: _description_
+        ValueError: _description_
+        ValueError: _description_
+        ValueError: _description_
+        ValueError: _description_
+        ValueError: _description_
+        ValueError: _description_
+        ValueError: _description_
+        ValueError: _description_
+        FileNotFoundError: _description_
+        NotImplementedError: _description_
+        ValueError: _description_
+
+    Returns:
+        _type_: _description_
+    """    
 
     # ------------------------------------------------------------------
     # Raw user inputs (flexible)
