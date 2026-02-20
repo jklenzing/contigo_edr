@@ -1,8 +1,3 @@
-"""Spacecraft class for deriving energy dissipation and effective density.
-
-added: 19/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
-"""
-
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
@@ -33,6 +28,7 @@ class Spacecraft:
     state: npt.ArrayLike | None = None        # (N,6) [x,y,z,vx,vy,vz]
     time: npt.ArrayLike | None = None         # (N,)
     sc_id_input: npt.ArrayLike | None = None  # (N,)
+    tscale_input: str | None = None          # ['GPS','TAI','UTC','ET','TDB']
 
     # Spacecraft physical properties (scalar or (N,))
     cd: float | npt.ArrayLike | None = None
@@ -68,6 +64,7 @@ class Spacecraft:
     # ------------------------------------------------------------------
     state_ecef: npt.NDArray[np.float64] = field(init=False)  # (N,6)
     stime: pd.DatetimeIndex = field(init=False)              # (N,)
+    tscale: str = field(init=False)                          # validated time scale
     sc_id: npt.NDArray = field(init=False)                   # (N,)
     unique_ids: npt.NDArray = field(init=False)
 
@@ -82,6 +79,8 @@ class Spacecraft:
     # Construction
     # ------------------------------------------------------------------
     def __post_init__(self):
+        self._validate_timescale()
+
         if self.state is not None or self.time is not None:
             if self.state is None or self.time is None:
                 raise ValueError("Both state and time must be provided together")
@@ -90,6 +89,19 @@ class Spacecraft:
             if self.state_file is None:
                 raise ValueError("Either (state, time) or state_file must be provided")
             self.load_from_file(self.state_file)
+
+    # ------------------------------------------------------------------
+    # Time scale validation
+    # ------------------------------------------------------------------
+    def _validate_timescale(self) -> None:
+        allowed = {'GPS', 'TAI', 'UTC', 'ET', 'TDB'}
+        if self.tscale_input is None:
+            self.tscale = 'UTC'
+        else:
+            tscale = self.tscale_input.upper()
+            if tscale not in allowed:
+                raise ValueError(f"tscale_input must be one of {allowed}")
+            self.tscale = tscale
 
     # ------------------------------------------------------------------
     # Loader / normalizer (array-based)
