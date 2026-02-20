@@ -1,3 +1,8 @@
+from typing import Protocol, runtime_checkable
+import numpy as np
+
+from ..spacecraft import Spacecraft
+
 @runtime_checkable
 class ForceModel(Protocol):
     """
