@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
+import os
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
@@ -51,6 +52,7 @@ class Spacecraft:
     vy_col: str = "vy"
     vz_col: str = "vz"
     sc_id_col: str | None = None
+    sc_fn_slc: slice | None = None
 
     # Optional physical-property columns
     cd_col: str | None = None
@@ -158,6 +160,11 @@ class Spacecraft:
 
         for file in files:
             df = self._load_table(file, loader, read_kwargs)
+            if self.sc_id_col is not None and self.sc_id_col.lower() == 'filename':
+                base_file = os.path.basename(file)
+                if isinstance(self.sc_fn_slc, slice):
+                    base_file = base_file[self.sc_fn_slc]
+                df['filename'] = base_file
             frames.append(df)
 
         df_all = pd.concat(frames, ignore_index=True)
@@ -306,9 +313,13 @@ class Spacecraft:
     @property
     def N(self) -> int:
         return self.state_ecef.shape[0]
+    
+    @property
+    def n_unique_ids(self) -> int:
+        return len(list(self.unique_ids))
 
     def __repr__(self) -> str:
         return (
-            f"Spacecraft(N={self.N}, unique_ids={list(self.unique_ids)}, "
+            f"Spacecraft(N={self.N}, n_unique_ids={self.n_unique_ids}, "
             f"start_time={self.stime[0]})"
         )
