@@ -78,3 +78,51 @@ def wf_mtime(url):
     except requests.exceptions.RequestException as e:
         print(f"Error fetching URL: {e}")
         return None
+    
+def df_sp3(fn):
+    """Read in SP3c ASCII text file.
+
+    Parameters
+    ----------
+    fn : function
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """    
+    
+    dt = []
+    dat = []
+    vel = []
+
+    with open(fn, 'r') as f:
+        for line in f:
+            # Implement parsing logic based on SP3 format
+            # Example: Check for specific record types like header records,
+            # position records, or clock records and extract data accordingly.
+            if line.startswith('*'): # Example for epoch records
+                # Parse epoch information
+                dt.append(line[1:-1].strip())
+                
+            elif line.startswith('P'): # Example for position records
+                # Parse satellite position and clock information
+                dat.append(line.split()[0:4])
+            elif line.startswith('V'):
+                vel.append([line[4:18],line[18:32],line[32:46]])
+
+
+    dt = pd.to_datetime(dt,format='%Y %m %d %H %M %S.%f')
+
+    pdf = pd.DataFrame(data=dat,columns=['sat','x','y','z'])
+    pdf[['x','y','z']] = pdf[['x','y','z']].astype(float)
+    pdf['DateTime'] = dt
+
+    vdf = pd.DataFrame(data=vel,columns=['vx','vy','vz'])
+    vdf[['vx','vy','vz']] = vdf[['vx','vy','vz']].astype(float)
+    vdf[['vx','vy','vz']] = vdf[['vx','vy','vz']]/10000.
+
+    sdf = pd.merge(pdf, vdf, left_index=True, right_index=True)
+
+    return sdf
