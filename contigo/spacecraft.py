@@ -7,6 +7,8 @@ import numpy.typing as npt
 import pandas as pd
 import glob
 
+import .utils.df_sp3
+
 ##TODO Future proof units
 
 @dataclass
@@ -286,8 +288,8 @@ class Spacecraft:
             return pd.read_csv(file, **kwargs)
         elif loader in {"hdf", "h5"}:
             return pd.read_hdf(file, **kwargs)
-        elif loader == "spk":
-            raise NotImplementedError("SPK loader not yet implemented")
+        elif loader == "sp3":
+            raise NotImplementedError("SP3 loader not yet implemented")
         else:
             raise ValueError(f"Unsupported loader type: {loader}")
 
