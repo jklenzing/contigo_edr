@@ -7,6 +7,7 @@ import numpy.typing as npt
 import pandas as pd
 import glob
 
+##TODO Future proof units
 
 @dataclass
 class Spacecraft:
@@ -30,6 +31,7 @@ class Spacecraft:
     time: npt.ArrayLike | None = None         # (N,)
     sc_id_input: npt.ArrayLike | None = None  # (N,)
     tscale_input: str | None = None          # ['GPS','TAI','UTC','ET','TDB']
+    unit_input: str = 'km'
 
     # Spacecraft physical properties (scalar or (N,))
     cd: float | npt.ArrayLike | None = None
@@ -82,6 +84,7 @@ class Spacecraft:
     # ------------------------------------------------------------------
     def __post_init__(self):
         self._validate_timescale()
+        self.unit = self.unit_input.lower()
 
         if self.state is not None or self.time is not None:
             if self.state is None or self.time is None:
@@ -91,6 +94,9 @@ class Spacecraft:
             if self.state_file is None:
                 raise ValueError("Either (state, time) or state_file must be provided")
             self.load_from_file(self.state_file)
+        
+        # normalize units
+        self._normalize_units()
 
     # ------------------------------------------------------------------
     # Time scale validation
@@ -234,6 +240,14 @@ class Spacecraft:
         self.cr_arr = norm(self.cr, self.cr_col)
         self.srp_area_arr = norm(self.srp_area, self.srp_area_col)
 
+    def _normalize_units(self):
+        if self.unit in ["m", "meter", "metre"]:
+            self.state_ecef /= 1000.0
+        elif self.unit in ["km", "kilometer", "kilometre"]:
+            pass
+        else:
+            raise ValueError(f"Unsupported unit: {self.unit}")
+        
     # ------------------------------------------------------------------
     def _expand_files(
         self,
@@ -312,6 +326,58 @@ class Spacecraft:
         return spacecraft_dict
 
     # ------------------------------------------------------------------
+    # Grouped normalized state view this might create overhead if we are
+    # grabbing data lots but it cleans up the namespace.
+    # If it proves to be a problem then we might have to refactor this
+    # so that this is done above.
+    # ------------------------------------------------------------------
+    @dataclass
+    class SpacecraftState:
+        state_ecef: npt.NDArray[np.float64]
+        stime: pd.DatetimeIndex
+        sc_id: npt.NDArray
+        unique_ids: npt.NDArray
+        cd: npt.NDArray
+        drag_area: npt.NDArray
+        sc_mass: npt.NDArray
+        cr: npt.NDArray
+        srp_area: npt.NDArray
+
+        @property
+        def N(self) -> int:
+            return self.state_ecef.shape[0]
+
+        @property
+        def r(self) -> npt.NDArray[np.float64]:
+            return self.state_ecef[:, 0:3]
+
+        @property
+        def v(self) -> npt.NDArray[np.float64]:
+            return self.state_ecef[:, 3:6]
+
+    @property
+    def state_data(self) -> "Spacecraft.SpacecraftState":
+        """
+        Structured grouped view of canonical internal state.
+
+        Cached after first access.
+        Cache automatically invalidated whenever state is reloaded.
+        """
+        if not hasattr(self, "_state_data_cache"):
+            self._state_data_cache = Spacecraft.SpacecraftState(
+                state_ecef=self.state_ecef,
+                stime=self.stime,
+                sc_id=self.sc_id,
+                unique_ids=self.unique_ids,
+                cd=self.cd_arr,
+                drag_area=self.drag_area_arr,
+                sc_mass=self.sc_mass_arr,
+                cr=self.cr_arr,
+                srp_area=self.srp_area_arr,
+            )
+        return self._state_data_cache
+    
+    # ------------------------------------------------------------------
     # Convenience properties
     # ------------------------------------------------------------------
     @property
@@ -327,3 +393,8 @@ class Spacecraft:
             f"Spacecraft(N={self.N}, n_unique_ids={self.n_unique_ids}, "
             f"start_time={self.stime[0]})"
         )
+    
+    # Can we add a quick check to the cache to see if things have changed?
+    # I also don't have a _commit_state(). Can I instead use a _clear_cache() 
+    # and call that at the begining of load_from_file and load_from_array 
+
