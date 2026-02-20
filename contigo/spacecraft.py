@@ -267,6 +267,40 @@ class Spacecraft:
             raise ValueError(f"Unsupported loader type: {loader}")
 
     # ------------------------------------------------------------------
+    # Multi-spacecraft utilities
+    # ------------------------------------------------------------------
+    def split_by_id(self) -> dict:
+        """
+        Split a multi-ID Spacecraft container into individual
+        Spacecraft objects keyed by spacecraft ID.
+
+        Returns
+        -------
+        dict
+            {spacecraft_id: Spacecraft}
+        """
+        spacecraft_dict = {}
+
+        for uid in self.unique_ids:
+            mask = self.sc_id == uid
+
+            sc = Spacecraft(
+                state=self.state_ecef[mask],
+                time=self.stime[mask],
+                sc_id_input=np.full(mask.sum(), uid),
+                tscale_input=self.tscale,
+                cd=self.cd_arr[mask],
+                drag_area=self.drag_area_arr[mask],
+                sc_mass=self.sc_mass_arr[mask],
+                cr=self.cr_arr[mask],
+                srp_area=self.srp_area_arr[mask],
+            )
+
+            spacecraft_dict[uid] = sc
+
+        return spacecraft_dict
+
+    # ------------------------------------------------------------------
     # Convenience properties
     # ------------------------------------------------------------------
     @property
