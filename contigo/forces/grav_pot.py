@@ -160,4 +160,45 @@ class GravPot:
         """
         if self.gravpot:
             return self.gravpot
-        
+
+class EarthPotential:
+    """
+
+    """
+
+    name: str = "EarthGravatationalPotential"
+
+    def __init__(self,
+                 pot_file: str = 'EIGEN-2.gfc',
+                 lmax: int=50,):
+        """
+
+        Parameters
+        ----------
+
+        """        
+        self.pot_file = pot_file
+        self.lmax = lmax
+
+    def acceleration(self, constellation):
+        raise NotImplementedError("Not implemented for EarthPotential.")
+
+
+    def potential(self, constellation):
+        pot_dict = {}
+
+        for sc_id, sc in constellation.spacecraft.items():
+            #sc x,y,z
+
+            r = np.sqrt(x*x+y*y+z*z)
+            lat = np.arctan2(z,np.sqrt(x*x+y*y))
+            lon = np.arctan2(y,x)
+
+            ep = GravPot(r=r,lat=lat,lon=lon,pot_file=self.pot_file,lmax=self.lmax)
+
+
+            ep.calc_pot()
+            pot_dict[sc_id] = ep.get_pot()
+
+        return pot_dict
+    
