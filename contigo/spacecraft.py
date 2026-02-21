@@ -178,7 +178,7 @@ class Spacecraft:
         if s.ndim != 2 or s.shape[1] != 6:
             raise ValueError("state must have shape (N,6)")
 
-        t = pd.to_datetime(time, utc=True)
+        t = pd.to_datetime(time, utc=False)
         if len(t) != s.shape[0]:
             raise ValueError("state and time must have the same length")
 
@@ -261,7 +261,7 @@ class Spacecraft:
             raise ValueError(f"Missing required columns: {missing}")
 
         # Normalize time
-        t = pd.to_datetime(df_all[self.time_col], utc=True)
+        t = pd.to_datetime(df_all[self.time_col], utc=False)
 
         # Normalize state vector
         s = df_all[[
