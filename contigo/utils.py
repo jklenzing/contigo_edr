@@ -5,10 +5,12 @@ added: 17/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
 import pathlib
 import functools
 import shutil
+import requests
 from datetime import datetime
 from dateutil import tz
 
-import requests
+import pandas as pd
+
 from tqdm import tqdm
 
 
@@ -117,7 +119,7 @@ def df_sp3(fn):
 
     pdf = pd.DataFrame(data=dat,columns=['sat','x','y','z'])
     pdf[['x','y','z']] = pdf[['x','y','z']].astype(float)
-    pdf['DateTime'] = dt
+    pdf['time'] = dt
 
     vdf = pd.DataFrame(data=vel,columns=['vx','vy','vz'])
     vdf[['vx','vy','vz']] = vdf[['vx','vy','vz']].astype(float)
