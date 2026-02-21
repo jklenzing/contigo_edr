@@ -1,3 +1,8 @@
+"""Derive third body accelerations for an Earth orbiting spacecraft.
+
+added: 18/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
+"""
+
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
@@ -7,7 +12,7 @@ import numpy.typing as npt
 import pandas as pd
 import glob
 
-from .utils import df_sp3
+import contigo.utils as utils
 
 ##TODO Future proof units
 
@@ -168,7 +173,7 @@ class Spacecraft:
         """
         # clear any cached data
         self._clear_cache() 
-        
+
         s = np.asarray(state, dtype=float)
         if s.ndim != 2 or s.shape[1] != 6:
             raise ValueError("state must have shape (N,6)")
@@ -385,7 +390,7 @@ class Spacecraft:
         elif loader in {"hdf", "h5"}:
             return pd.read_hdf(file, **kwargs)
         elif loader == "sp3":
-            raise NotImplementedError("SP3 loader not yet implemented")
+            return utils.df_sp3(file, **kwargs)
         else:
             raise ValueError(f"Unsupported loader type: {loader}")
 
@@ -496,12 +501,5 @@ class Spacecraft:
         return len(list(self.unique_ids))
 
     def __repr__(self) -> str:
-        return (
-            f"Spacecraft(N={self.N}, n_unique_ids={self.n_unique_ids}, "
-            f"start_time={self.stime[0]})"
-        )
-    
-    # Can we add a quick check to the cache to see if things have changed?
-    # I also don't have a _commit_state(). Can I instead use a _clear_cache() 
-    # and call that at the begining of load_from_file and load_from_array 
+        return f"Spacecraft(N={self.N}), n_unique_ids={self.n_unique_ids}, "
 
