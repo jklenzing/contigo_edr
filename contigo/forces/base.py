@@ -1,29 +1,31 @@
+"""Derive third body accelerations for an Earth orbiting spacecraft.
+
+added: 18/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
+"""
+
 from typing import Protocol, runtime_checkable
 import numpy as np
 
-from ..spacecraft import Spacecraft
+from ..constellation import Constellation
 
 @runtime_checkable
 class ForceModel(Protocol):
     """
-    Protocol that all force models must follow.
+    All force models operate on a Constellation.
 
-    Required:
-        acceleration(spacecraft) -> (N,3)
-
-    Optional (for conservative forces):
-        potential(spacecraft) -> (N,)
-
-    Attributes:
-        name: str
-        is_conservative: bool
+    A single Spacecraft should be represented as a
+    Constellation with one member.
     """
 
     name: str
     is_conservative: bool
 
-    def acceleration(self, spacecraft: Spacecraft) -> npt.NDArray[np.float64]:
+    def acceleration(
+        self, constellation: Constellation
+    ) -> dict[str, npt.NDArray[np.float64]]:
         ...
 
-    def potential(self, spacecraft: Spacecraft) -> npt.NDArray[np.float64]:
+    def potential(
+        self, constellation: Constellation
+    ) -> dict[str, npt.NDArray[np.float64]]:
         ...
