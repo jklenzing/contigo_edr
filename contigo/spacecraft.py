@@ -349,12 +349,25 @@ class Spacecraft:
 
         return sorted(files)
 
-    def _load_table(
-        self,
-        file: Path,
-        loader: str | None = None,
-        read_kwargs: dict | None = None,
-    ) -> pd.DataFrame:
+    def _load_table(self,
+                    file: Path,
+                    loader: str | None = None,
+                    read_kwargs: dict | None = None,) -> pd.DataFrame:
+        """Load file into a pandas DataFrame
+
+        Args:
+            file (Path): File to load.
+            loader (str | None, optional): Loader to use, csv, hdf, or sp3. Defaults to None
+            and uses file extension to infer which to use.
+            read_kwargs (dict | None, optional): Keyword argument to pass to the loader 
+            functions. Defaults to None.
+
+        Raises: 
+            ValueError: Raise error if loader or file extension can't be identified.
+
+        Returns:
+            pd.DataFrame: DataFrame containing Spacecraft data loaded from passed files.
+        """        
         """Dispatch to the appropriate reader based on loader or file extension."""
         suffix = file.suffix.lower()
         loader = loader or suffix.lstrip(".")
@@ -373,12 +386,8 @@ class Spacecraft:
         else:
             raise ValueError(f"Unsupported loader type: {loader}")
 
-    # ------------------------------------------------------------------
-    # Multi-spacecraft utilities
-    # ------------------------------------------------------------------
     def split_by_id(self) -> dict:
-        """
-        Split a multi-ID Spacecraft container into individual
+        """Split a multi-ID Spacecraft container into individual
         Spacecraft objects keyed by spacecraft ID.
 
         Returns
@@ -410,8 +419,7 @@ class Spacecraft:
     # ------------------------------------------------------------------
     # Grouped normalized state view this might create overhead if we are
     # grabbing data lots but it cleans up the namespace.
-    # If it proves to be a problem then we might have to refactor this
-    # so that this is done above.
+    # To limit overhead the container is cached in state_data
     # ------------------------------------------------------------------
     @dataclass
     class SpacecraftState:
@@ -464,10 +472,20 @@ class Spacecraft:
     # ------------------------------------------------------------------
     @property
     def N(self) -> int:
+        """Number of elements in Spacecraft state/time
+
+        Returns:
+            int: Number of elements in Spacecraft state/time
+        """        
         return self.state_ecef.shape[0]
     
     @property
     def n_unique_ids(self) -> int:
+        """Number of unique Spacecraft loaded
+
+        Returns:
+            int: Number of unique Spacecraft loaded
+        """        
         return len(list(self.unique_ids))
 
     def __repr__(self) -> str:
