@@ -278,21 +278,45 @@ class ThirdBody:
     """
 
     name: str = "ThirdBodyAcceleration"
-    is_conservative: bool = True
 
-    def __init__(
-        self,
-        body=None,
-        GM=None,
-        ephemeris: str = "de440s",
-    ):
+    def __init__(self,
+                 body=None,
+                 GM=None,
+                 ephemeris: str = "de440s",):
+        """Third body gravity acting on individual satellites in a Constellation
+        
+        Wrapper for ThirdBodyAcc to follow the .base.ForceModel(Protocol)
+
+        Parameters
+        ----------
+        body : npt.ArrayLike, optional
+            A list of bodies for which to calculate accelerations at the location 
+            of a spacecraft (spos), by default ['SUN'].
+        GM : npt.ArrayLike | None, optional
+            Mass parameters for the bodies in body. Should be in the same order as body.
+            If nothing is passed they are loaded from the constants module which uses
+            JPLs de440 mass parameters, by default None.
+        ephemeris : str, optional
+            JPL SPICE ephemeris file to use; allowed values are de440 and de440s. 's'
+            denotes the smaller version which covers a shorter time frame. By default 
+            'de440s'
+
+        """        
         self.body = body
         self.GM = GM
         self.ephemeris = ephemeris
 
-    # --------------------------------------------------------------
     def acceleration(self, constellation):
-        """
+        """Derive third body accellerations.
+
+        Use ThirdBodyAcc to derive accelerations for satellites in a Constellation 
+        object.
+
+        Constellation holds the state and time scale of all satellites.
+
+        Initialization defines the ephemeris to use and the solar system bodies
+
+
         Returns:
             dict[spacecraft_id] -> (N,3)
         """
@@ -315,8 +339,7 @@ class ThirdBody:
 
         return acc_dict
 
-    # --------------------------------------------------------------
     def potential(self, constellation):
         raise NotImplementedError(
-            "Potential not implemented for ThirdBodyAcc yet."
+            "Not implemented for ThirdBodyAcc."
         )
