@@ -7,7 +7,7 @@ import urllib.parse
 import logging
 
 from os import path
-from datetime import datetime
+from datetime import datetime, timezone
 from dateutil import tz
 
 import pandas as pd
@@ -139,7 +139,7 @@ class ThirdBodyAcc:
         # calculate the seconds past j2000 to convert
         # to SPICE ET Ephemeris time (in the SPICE system,
         # this is equivalent to TDB time)
-        if self.stime.dt.tz is not None and self.stime.dt.tz != tz.UTC:
+        if self.stime.dt.tz is not None and self.stime.dt.tz != timezone.utc:
             print(str(self.stime.dt.tz))
             raise ValueError('stime should be time zone naive or UTC')
         j2000 = pd.Timestamp('2000-01-01 12:00:00')
@@ -340,6 +340,4 @@ class ThirdBody:
         return acc_dict
 
     def potential(self, constellation):
-        raise NotImplementedError(
-            "Not implemented for ThirdBodyAcc."
-        )
+        raise NotImplementedError("Not implemented for ThirdBodyAcc.")
