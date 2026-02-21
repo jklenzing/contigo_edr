@@ -100,10 +100,17 @@ class Spacecraft:
     cr_arr: npt.NDArray = field(init=False)
     srp_area_arr: npt.NDArray = field(init=False)
 
-    # ------------------------------------------------------------------
-    # Construction
-    # ------------------------------------------------------------------
     def __post_init__(self):
+        """Post initialization of the Spacecraft class
+
+        Based on input load data from arrays or files.
+
+        Raises:
+            ValueError: if arrays are provide both a spacecraft state array and 
+            time array must passed. 
+            ValueError: either (state, time) arrays must be passed or a container of 
+            files.
+        """        
         self._validate_timescale()
         self.unit = self.unit_input.lower()
 
@@ -119,10 +126,15 @@ class Spacecraft:
         # normalize units
         self._normalize_units()
 
-    # ------------------------------------------------------------------
-    # Time scale validation
-    # ------------------------------------------------------------------
     def _validate_timescale(self) -> None:
+        """Validate the time scale
+        
+        Time is required to have an attached scale so that the Spacecraft
+        class can work with spiceypy
+
+        Raises:
+            ValueError: the time scale must be one of 'GPS', 'TAI', 'UTC', 'ET', 'TDB'
+        """        
         allowed = {'GPS', 'TAI', 'UTC', 'ET', 'TDB'}
         if self.tscale_input is None:
             self.tscale = 'UTC'
@@ -132,17 +144,29 @@ class Spacecraft:
                 raise ValueError(f"tscale_input must be one of {allowed}")
             self.tscale = tscale
 
-    # ------------------------------------------------------------------
-    # Loader / normalizer (array-based)
-    # ------------------------------------------------------------------
-    def load_from_arrays(
-        self,
-        state: npt.ArrayLike,
-        time: npt.ArrayLike,
-        sc_id: npt.ArrayLike | None = None,
-    ) -> None:
-        """Load spacecraft state from in-memory arrays."""
+    def load_from_arrays(self, state: 
+                         npt.ArrayLike,
+                         time: npt.ArrayLike,
+                         sc_id: npt.ArrayLike | None = None,) -> None:
+        """Load spacecraft state from arrays passed in creation.
 
+        Args:
+            state (npt.ArrayLike): (N,6) spacecraft state [x,y,z,vx,vy,vz]
+
+            time (npt.ArrayLike): (N,) time associated with spacecraft state
+
+            sc_id (npt.ArrayLike | None, optional): spacecraft IDs to parse. Defaults to None.
+
+        Raises:
+            ValueError: make sure spacecraft state is (N,6) containing position [x,y,z] and
+            velocity [vx,vy,vz].
+
+            ValueError: spacecraft state and time must have the same number of elements in 
+            the dimensions.
+
+            ValueError: if passed spacecraft IDs must (N,)
+        """        
+    
         s = np.asarray(state, dtype=float)
         if s.ndim != 2 or s.shape[1] != 6:
             raise ValueError("state must have shape (N,6)")
@@ -174,13 +198,35 @@ class Spacecraft:
     # ------------------------------------------------------------------
     # Loader / normalizer (file-based)
     # ------------------------------------------------------------------
-    def load_from_file(
-        self,
-        state_file: str | Path | Iterable[str | Path],
-        loader: str | None = None,
-        read_kwargs: dict | None = None,
-    ) -> None:
-        """Load spacecraft state from one or more files."""
+    def load_from_file(self,
+                       state_file: str | Path | Iterable[str | Path],
+                       loader: str | None = None,
+                       read_kwargs: dict | None = None,) -> None:
+        """Load spacecraft state from one or more files.
+
+        Args:
+            state_file (str | Path | Iterable[str  |  Path]): Files to load into spacecraft
+            state. Specific columns are required to be loaded (time, x, y, z, vx, vy, vs).
+            optional columns are (spacecraft id, coeffecient of drag, drag area, spacecraft
+            mass, coeffecient of reflection, SRP area).
+
+            loader (str | None, optional): Specify the loader to use to when parseing the
+            state files (state_file). If it is None then the loader is inferred from the
+            file extension. The loaders which can be used are pandas.read_csv(),
+            pandas.read_hdf(), or contigo.utils.df_sp3() Defaults to None.
+
+            read_kwargs (dict | None, optional): Keyword arguments to pass to the loaders.
+            Defaults to None.
+
+        Raises:
+            ValueError: Specific columns must be defined when reading data.
+            (t, x, y, z, vx, vy, vz).
+
+            ValueError: Spacecraft state must be (N,6).
+
+            ValueError: First dimension of Spacecraft state and time must be N.
+        """        
+        
 
         files = self._expand_files(state_file)
         frames: list[pd.DataFrame] = []
@@ -243,6 +289,7 @@ class Spacecraft:
     def _normalize_properties(self, N: int, df: pd.DataFrame | None = None) -> None:
         """Normalize scalar or array spacecraft properties to strict (N,) arrays."""
 
+        # helper function to quickly process all properties
         def norm(val, col):
             if val is not None:
                 arr = np.asarray(val)
@@ -255,6 +302,7 @@ class Spacecraft:
                 return df[col].to_numpy(dtype=float)
             return np.full(N, np.nan)
 
+        # process all properties using helper function
         self.cd_arr = norm(self.cd, self.cd_col)
         self.drag_area_arr = norm(self.drag_area, self.drag_area_col)
         self.sc_mass_arr = norm(self.sc_mass, self.sc_mass_col)
@@ -262,6 +310,11 @@ class Spacecraft:
         self.srp_area_arr = norm(self.srp_area, self.srp_area_col)
 
     def _normalize_units(self):
+        """Convert meters to kilometer if unit is meters
+
+        Raises:
+            ValueError: currently only accepts meters
+        """        
         if self.unit in ["m", "meter", "metre"]:
             self.state_ecef /= 1000.0
         elif self.unit in ["km", "kilometer", "kilometre"]:
@@ -270,11 +323,19 @@ class Spacecraft:
             raise ValueError(f"Unsupported unit: {self.unit}")
         
     # ------------------------------------------------------------------
-    def _expand_files(
-        self,
-        state_file: str | Path | Iterable[str | Path],
-    ) -> list[Path]:
-        """Expand wildcards and iterables into a sorted list of files."""
+    def _expand_files(self,
+                      state_file: str | Path | Iterable[str | Path],) -> list[Path]:
+        """Expand wildcards and iterables into a sorted list of files.
+
+        Args:
+            state_file (str | Path | Iterable[str  |  Path]): Input files to search for
+
+        Raises:
+            FileNotFoundError: files not found
+
+        Returns:
+            list[Path]: List of paths to load.
+        """        
         if isinstance(state_file, (str, Path)):
             paths = glob.glob(str(state_file))
         else:
