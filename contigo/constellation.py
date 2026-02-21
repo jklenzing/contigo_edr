@@ -1,5 +1,8 @@
+"""Derive third body accelerations for an Earth orbiting spacecraft.
 
-from spacecraft import Spacecraft
+added: 18/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
+"""
+from .spacecraft import Spacecraft
 
 # ==================================================================
 # Constellation Container
