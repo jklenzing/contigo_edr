@@ -165,8 +165,10 @@ class Spacecraft:
             the dimensions.
 
             ValueError: if passed spacecraft IDs must (N,)
-        """        
-    
+        """
+        # clear any cached data
+        self._clear_cache() 
+        
         s = np.asarray(state, dtype=float)
         if s.ndim != 2 or s.shape[1] != 6:
             raise ValueError("state must have shape (N,6)")
@@ -225,8 +227,9 @@ class Spacecraft:
             ValueError: Spacecraft state must be (N,6).
 
             ValueError: First dimension of Spacecraft state and time must be N.
-        """        
-        
+        """
+        # clear any cached data
+        self._clear_cache()    
 
         files = self._expand_files(state_file)
         frames: list[pd.DataFrame] = []
@@ -420,7 +423,7 @@ class Spacecraft:
     # Grouped normalized state view this might create overhead if we are
     # grabbing data lots but it cleans up the namespace.
     # To limit overhead the container is cached in state_data
-    # ------------------------------------------------------------------
+    # -----------------------------------------------------------------
     @dataclass
     class SpacecraftState:
         state_ecef: npt.NDArray[np.float64]
@@ -467,6 +470,10 @@ class Spacecraft:
             )
         return self._state_data_cache
     
+    def _clear_cache(self) -> None:
+        """Clear cached derived/grouped state containers."""
+        if hasattr(self, "_state_data_cache"):
+            del self._state_data_cache
     # ------------------------------------------------------------------
     # Convenience properties
     # ------------------------------------------------------------------
