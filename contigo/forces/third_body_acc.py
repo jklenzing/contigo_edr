@@ -270,3 +270,53 @@ class ThirdBodyAcc:
             raise RuntimeError("calc_tba() must be called first")
         return self.bd_ecef
 
+
+class ThirdBody:
+    """
+    Third-body gravity force operating on invdividual satellites in a Constellation
+    object.
+    """
+
+    name: str = "ThirdBodyAcceleration"
+    is_conservative: bool = True
+
+    def __init__(
+        self,
+        body=None,
+        GM=None,
+        ephemeris: str = "de440s",
+    ):
+        self.body = body
+        self.GM = GM
+        self.ephemeris = ephemeris
+
+    # --------------------------------------------------------------
+    def acceleration(self, constellation):
+        """
+        Returns:
+            dict[spacecraft_id] -> (N,3)
+        """
+
+        acc_dict = {}
+
+        for sc_id, sc in constellation.spacecraft.items():
+
+            tba = ThirdBodyAcc(
+                spos=sc.state_ecef[:, 0:3],
+                stime=sc.stime,
+                body=self.body,
+                GM=self.GM,
+                scale=sc.tscale,
+                ephemeris=self.ephemeris,
+            )
+
+            tba.calc_tba()
+            acc_dict[sc_id] = tba.get_tba()
+
+        return acc_dict
+
+    # --------------------------------------------------------------
+    def potential(self, constellation):
+        raise NotImplementedError(
+            "Potential not implemented for ThirdBodyAcc yet."
+        )
