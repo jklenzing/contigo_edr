@@ -7,10 +7,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
 import os
+import glob
+
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-import glob
 
 import contigo.utils as utils
 
