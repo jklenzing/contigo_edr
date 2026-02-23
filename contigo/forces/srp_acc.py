@@ -23,8 +23,8 @@ class SRPGMATAcc:
                  sc_cr: npt.ArrayLike | None = None,
                  sc_srparea: npt.ArrayLike | None = None,
                  sc_mass:  npt.ArrayLike | None = None,
-                 apistartup: str | Path, 
-                 gmat_install: str | Path):
+                 apistartup: str | None = None, 
+                 gmat_install: str | None = None):
         
         #first need to setup and load GMAT Python API
         srp_utils.setup_gmat(apistartup,gmat_install)
@@ -39,29 +39,27 @@ class SRPGMATAcc:
 
         gmat = config.state['gmatpy']
 
-        gtime = pd.to_datetime(self.stime,format='%d %b %Y %H:%M:%S.000')
+        gtime = pd.to_datetime(self.time).strftime('%d %b %Y %H:%M:%S.000')
         #setup a gmat spacecraft
         earthorb = gmat.Construct("Spacecraft", "EarthOrbiter")
         earthorb.SetField("DateFormat", "TAIGregorian")
-        earthorb.SetField("Epoch", f'{gtime[0]}')
-        # Spacecraft State
         earthorb.SetField("CoordinateSystem", "EarthFixed")
-        earthorb.SetField("X", x)
-        earthorb.SetField("Y", y)
-        earthorb.SetField("Z", z)
-        earthorb.SetField("VX", vx)
-        earthorb.SetField("VY", vy)
-        earthorb.SetField("VZ", vz)
-        earthorb.SetField("DryMass", self.mass[0])
-        earthorb.SetField("Cr", self.cr)
-        earthorb.SetField("SRPArea", self.cr_area)
 
-        #setup forces to get SRP
-        fm = gmat.Construct("ForceModel", "FM")
-        fm.SetField("CentralBody", "Earth")
+        # Create the converter
+        csConverter = gmat.CoordinateConverter()
+
+        # Create the input and output coordinate systems
+        eci  = gmat.Construct("CoordinateSystem", "ECI", "Earth", "MJ2000Eq")
+        ecef = gmat.Construct("CoordinateSystem", "ECEF", "Earth", "BodyFixed")
+        
 
         # Solar Radiation Pressure
         srp = gmat.Construct("SolarRadiationPressure", "SRP")
+
+        # Add all of the forces into the ODEModel container
+        # ODE Model settings
+        fm = gmat.Construct("ForceModel", "FM")
+        fm.SetField("CentralBody", "Earth")
         fm.AddForce(srp)
 
         # Setup the state vector used for the force
@@ -72,21 +70,6 @@ class SRPGMATAcc:
         fm.SetPropStateManager(psm)
         fm.SetState(psm.GetState())
 
-        # Assemble all of the objects together 
-        gmat.Initialize()
-
-        # Finish force model setup:
-        ##  Map spacecraft state into the model
-        fm.BuildModelFromMap()
-        ##  Load physical parameters needed for the forces
-        fm.UpdateInitialData()
-
-        # Create the converter
-        csConverter = gmat.CoordinateConverter()
-
-        # Create the input and output coordinate systems
-        eci  = gmat.Construct("CoordinateSystem", "ECI", "Earth", "MJ2000Eq")
-        ecef = gmat.Construct("CoordinateSystem", "ECEF", "Earth", "BodyFixed")
         gmat.Initialize()
 
         srp_der = []
@@ -100,26 +83,11 @@ class SRPGMATAcc:
             earthorb.SetField("VX", st[3])
             earthorb.SetField("VY", st[4])
             earthorb.SetField("VZ", st[5])
-
+            earthorb.SetField("DryMass", mass)
             earthorb.SetField("Cr", cr)
             earthorb.SetField("SRPArea", srp_a)
 
-            # Solar Radiation Pressure
-            srp = gmat.Construct("SolarRadiationPressure", "SRP")
-
-            # Add all of the forces into the ODEModel container
-            # ODE Model settings
-            fm = gmat.Construct("ForceModel", "FM")
-            fm.SetField("CentralBody", "Earth")
-            fm.AddForce(srp)
-
-            # Setup the state vector used for the force
-            psm = gmat.PropagationStateManager()
-            psm.SetObject(earthorb)
-            psm.BuildState()
-
-            fm.SetPropStateManager(psm)
-            fm.SetState(psm.GetState())
+            
 
             gmat.Initialize()
 
@@ -141,13 +109,5 @@ class SRPGMATAcc:
             csConverter.Convert(earthorb.GetEpoch(), gmat.Rvector6(srp_der[-1]), eci, conv_vec, ecef)
             srp_der_ecef.append(conv_vec.GetDataVector())
 
-
-
-
-
-
-
-    
-
-
+        return srp_der_ecef, srp_der
 
