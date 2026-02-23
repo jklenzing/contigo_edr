@@ -28,7 +28,8 @@ def data_path():
 DATA_DIR = data_path()
 
 # Mutable State Values
-state = {'kernel_downloaded':False,
+state = {'gmat_loaded':False
+         'kernel_downloaded':False,
          'pot_coef_loaded':False,
          'pot_file': None, 
          'pot_clm': None,
