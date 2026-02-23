@@ -5,6 +5,7 @@ added: 18/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
 
 from typing import Protocol, runtime_checkable
 import numpy as np
+import numpy.typing as npt
 
 from ..constellation import Constellation
 
