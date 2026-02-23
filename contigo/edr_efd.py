@@ -1,3 +1,6 @@
+import pandas as pd
+import numpy as np
+
 from scipy.integrate import cumulative_simpson
 from scipy.integrate import cumulative_trapezoid
 
@@ -46,7 +49,17 @@ class EDRDensity:
 
         results = {}
 
-        earth_angv2 = constants.WGS84_EARTH_ANGULAR_VELOCITY**2 
+        earth_angv2 = constants.WGS84_EARTH_ANGULAR_VELOCITY**2
+
+        # derive the earth potential for each sc in the 
+        # constellation
+        e_gp_con = self.potential_model.potential(self.system)
+
+        # derive the accelerations from the force models
+        # for the constellation
+        acc_con = { }
+        for model in self.force_models:
+            acc_con[model.name] = model.acceleration(self.system)
 
         for sc_id, sc in spacecraft_dict.items():
             N = sc.N
@@ -57,26 +70,34 @@ class EDRDensity:
             sc_xy2 = sc_p[:,0]**2 + sc_p[:,1]**2
             sc_v2 = (sc_v*sc_v).sum(axis=1)
 
-            e_gp = self.potential_model.potential(sc)
+            e_gp = e_gp_con[sc_id]
 
             # equation a18 and a19 non integral portion
             # here we use r^2*cos*2(phi) = x^2+y^2
             # and we subtract the edr at edr time zero
             edr = sc_v2/2. - e_gp - earth_angv2*sc_xy2/2.
-            edr = edr - edr[0]
 
             # compute the acceleration integrals
             # x-axis for integrating
             acc_int = np.zeros(N) 
             x_ax = (pd.DatetimeIndex(sc.time).to_julian_date()*86400.).to_numpy()
             x_ax = x_ax-x_ax.min() 
-            for model in self.force_models
-                acc = model.acceleration(sc)
+            for m_id, m_acc in acc_con.items():
+                # if the force model returns multiple accelerations
+                # loop through them all
+                if m_acc[sc_id].shape[0] != N:
+                    for i in range(m_acc[sc_id].shape[0]):
+                        acc = m_acc[sc_id][i,:,:]
+                        if acc.shape[0] != N:
+                            raise ValueError('Model accelerations should be shape (N,3) or (x,N,3)')
+                        a_int = (acc*sc_v).sum(axis=1)
+                        acc_int += cumulative_simpson(a_int, x=x_ax, initial=0)
+                else:
+                    a_int = (m_acc[sc_id]*sc_v).sum(axis=1)
+                    acc_int += cumulative_simpson(a_int, x=x_ax, initial=0)      
 
-                a_int = acc*sc_v
-                acc_int += cumulative_trapezoid(a_int, x_ax, initial=0)
-
-            edr = edr - acc_int 
+            edr = edr - acc_int
+            edr = edr - edr[0] 
 
             results[sc_id] = {'edr': edr}
 
