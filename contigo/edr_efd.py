@@ -1,3 +1,7 @@
+"""Derive third body accelerations for an Earth orbiting spacecraft.
+
+added: 23/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
+"""
 import pandas as pd
 import numpy as np
 
