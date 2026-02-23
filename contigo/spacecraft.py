@@ -479,6 +479,16 @@ class Spacecraft:
         """Clear cached derived/grouped state containers."""
         if hasattr(self, "_state_data_cache"):
             del self._state_data_cache
+
+    def spherical(self) -> npt.NDArray[np.float64]:
+        self.state_ecef
+
+        r = np.linalg.norm(self.state_ecef[:,0:3], axis=1)
+        lat = np.arctan2(self.state_ecef[:,2],
+                         np.linalg.norm(self.state_ecef[:,0:2], axis=1))
+        lon = np.arctan2(self.state_ecef[:,1],self.state_ecef[:,0])
+
+        return np.array([r,lat,lon]).transpose()
     # ------------------------------------------------------------------
     # Convenience properties
     # ------------------------------------------------------------------
