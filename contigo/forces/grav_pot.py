@@ -158,8 +158,11 @@ class GravPot:
         np.array
             Array of potetial in km^2/s^2
         """
-        if self.gravpot:
+        if hasattr(self, "gravpot"):
             return self.gravpot
+        else:
+             ValueError('Potential needs to be calculated.')
+
 
 class EarthPotential:
     """
@@ -170,7 +173,7 @@ class EarthPotential:
 
     def __init__(self,
                  pot_file: str = 'EIGEN-2.gfc',
-                 lmax: int=50,):
+                 lmax: int=100,):
         """
 
         Parameters
@@ -188,13 +191,11 @@ class EarthPotential:
         pot_dict = {}
 
         for sc_id, sc in constellation.spacecraft.items():
-            #sc x,y,z
 
-            r = np.sqrt(x*x+y*y+z*z)
-            lat = np.arctan2(z,np.sqrt(x*x+y*y))
-            lon = np.arctan2(y,x)
+            sc_sph = sc.spherical()
 
-            ep = GravPot(r=r,lat=lat,lon=lon,pot_file=self.pot_file,lmax=self.lmax)
+            ep = GravPot(r=sc_sph[:,0],lat=sc_sph[:,1],lon=sc_sph[:,2],
+                         pot_file=self.pot_file,lmax=self.lmax)
 
 
             ep.calc_pot()
