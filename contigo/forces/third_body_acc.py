@@ -309,7 +309,7 @@ class ThirdBody:
 
     def acceleration(self, 
                      constellation: Constellation
-                     ) -> dict[str, npt.NDArray[np.float64]]:
+                     ) -> dict[str, npt.NDArray[np.float64]]: 
         """Derive third body accellerations.
 
         Use ThirdBodyAcc to derive accelerations for satellites in a Constellation 
@@ -318,6 +318,11 @@ class ThirdBody:
         Constellation holds the state and time scale of all satellites.
 
         Initialization defines the ephemeris to use and the solar system bodies
+
+        Parameters
+        ----------
+        constellation : Constellation
+            Constellation container of Spacecraft objects.
 
         Returns:
             dict[spacecraft_id] -> (N,3)
