@@ -20,6 +20,7 @@ import contigo.config as config
 
 from .tba_utils import tba_pairwise_numba
 from ..constants import GMc
+from ..constellation import Constellation
 
 logger = logging.getLogger(__name__)
 
@@ -306,7 +307,9 @@ class ThirdBody:
         self.GM = GM
         self.ephemeris = ephemeris
 
-    def acceleration(self, constellation):
+    def acceleration(self, 
+                     constellation: Constellation
+                     ) -> dict[str, npt.NDArray[np.float64]]:
         """Derive third body accellerations.
 
         Use ThirdBodyAcc to derive accelerations for satellites in a Constellation 
@@ -339,5 +342,7 @@ class ThirdBody:
 
         return acc_dict
 
-    def potential(self, constellation):
+    def potential(self, 
+                  constellation: Constellation
+                  ) -> dict[str, npt.NDArray[np.float64]]:
         raise NotImplementedError("Not implemented for ThirdBodyAcc.")
