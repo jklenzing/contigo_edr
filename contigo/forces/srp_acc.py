@@ -70,7 +70,7 @@ class SRPGMATAcc:
         """
         gmat = config.state['gmatpy']
 
-        gtime = pd.to_datetime(self.time).strftime('%d %b %Y %H:%M:%S.000')
+        gtime = pd.to_datetime(np.array(self.time)).strftime('%d %b %Y %H:%M:%S.000')
         #setup a gmat spacecraft
         earthorb = gmat.Construct("Spacecraft", "EarthOrbiter")
         earthorb.SetField("DateFormat", "TAIGregorian")
