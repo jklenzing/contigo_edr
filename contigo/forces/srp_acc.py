@@ -167,6 +167,8 @@ class SRPAcc:
     SRP accelerations for invdividual satellites in a Constellation object.
     """
 
+    name: str = "SRPAcceleration"
+
     def __init__(self, 
                  apistartup: str | None = None, 
                  gmat_install: str | None = None):
