@@ -21,12 +21,12 @@ class ForceModel(Protocol):
     name: str
     is_conservative: bool
 
-    def acceleration(
-        self, constellation: Constellation
-    ) -> dict[str, npt.NDArray[np.float64]]:
+    def acceleration(self, 
+                     constellation: Constellation
+                     ) -> dict[str, npt.NDArray[np.float64]]:
         ...
 
-    def potential(
-        self, constellation: Constellation
-    ) -> dict[str, npt.NDArray[np.float64]]:
+    def potential(self, 
+                  constellation: Constellation
+                  ) -> dict[str, npt.NDArray[np.float64]]:
         ...
