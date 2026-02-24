@@ -280,8 +280,7 @@ class Spacecraft:
             sc_id_arr = df_all[self.sc_id_col].astype("category").to_numpy()
         else:
             sc_id_arr = pd.Series(
-                np.full(len(t), "NO_ID", dtype=object)
-            ).astype("category").to_numpy()
+                np.full(len(t), "NO_ID", dtype=object)).astype("category").to_numpy()
 
         # Commit normalized state
         self.state_ecef = s
