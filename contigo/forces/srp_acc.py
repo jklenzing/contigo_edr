@@ -13,6 +13,7 @@ import pandas as pd
 import contigo.config as config
 
 from contigo.forces import srp_utils
+from ..constellation import Constellation
 
 class SRPGMATAcc:
     """Deriving *Cannonball* SRP accelleration from GMAT
@@ -162,19 +163,61 @@ class SRPGMATAcc:
 
 
 class SRPAcc:
-
+    """
+    SRP accelerations for invdividual satellites in a Constellation object.
+    """
 
     def __init__(self, 
                  apistartup: str | None = None, 
                  gmat_install: str | None = None):
-        
+        """SRP acceleration for individual satellets in a Constellation object.
+
+        Wrapper for SRPGMATAcc which follows the .base.ForceModel(Protocol)
+
+        Parameters
+        ----------
+        apistartup : str | None, optional
+            GMAT startup file for loading and adding GMAT to the python path.
+        gmat_install : str | None, optional
+            GMAT installation  directory for adding GMAT to the python path.
+        """        
         self.apistartup = apistartup
         self.gmat_install = gmat_install
 
     def acceleration(self, 
                      constellation: Constellation
                      ) -> dict[str, npt.NDArray[np.float64]]:
-        
+        """Derive SRP accelerations. 
+
+        Use SRPGMATAcc to derive *cannonball* SRP accelerations for spacecraft in 
+        a Constellation object.
+
+        Constellation holds the state and time for all satellites. 
+
+        Parameters
+        ----------
+        constellation : Constellation
+            Constellation container of Spacecraft objects.
+
+        Returns
+        -------
+        dict[spacecraft_id] -> (N,3)
+        """        
+        acc_dict = {}
+        for sc_id, sc in constellation.spacecraft.items():
+
+            srp = SRPGMATAcc(sc_state=sc.state_ecef,
+                             sc_time=sc.time,
+                             sc_cr=sc.cr_arr,
+                             sc_srparea=sc.srp_area_arr,
+                             sc_mass=sc.sc_mass_arr,
+                             apistartup=self.apistartup,
+                             gmat_install=self.gmat_install)
+            srp.calc_srp()
+            acc_dict[sc_id] = srp.get_ecef_acc()
+
+        return acc_dict
+
     def potential(self, 
                 constellation: Constellation
                 ) -> dict[str, npt.NDArray[np.float64]]:
