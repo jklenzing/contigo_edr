@@ -35,6 +35,9 @@ class SRPGMATAcc:
         self.srp_area = sc_srparea
         self.mass = sc_mass
 
+        self.srp_acc_ecef = None
+        self.srp_acc_eci = None
+
     def calc_srp(self):
 
         gmat = config.state['gmatpy']
@@ -87,8 +90,6 @@ class SRPGMATAcc:
             earthorb.SetField("Cr", cr)
             earthorb.SetField("SRPArea", srp_a)
 
-            
-
             gmat.Initialize()
 
             # Finish force model setup:
@@ -106,8 +107,22 @@ class SRPGMATAcc:
             conv_vec = gmat.Rvector6(0,0,0,0,0,0)
 
             # SRP
-            csConverter.Convert(earthorb.GetEpoch(), gmat.Rvector6(srp_der[-1]), eci, conv_vec, ecef)
+            csConverter.Convert(earthorb.GetEpoch(), 
+                                gmat.Rvector6(srp_der[-1]), eci, 
+                                conv_vec, ecef)
             srp_der_ecef.append(conv_vec.GetDataVector())
 
-        return srp_der_ecef, srp_der
+        srp_der_ecef = np.array(srp_der_ecef)[:,-3:]
+        srp_der = np.array(srp_der)[:,-3:]
 
+        self.srp_acc_ecef = srp_der_ecef
+        self.srp_acc_eci = srp_der
+
+    def get_ecef_acc(self):
+        return self.srp_acc_ecef
+    
+    def get_eci_acc(self):
+        return self.srp_acc_eci
+
+    def get_all_acc(self):
+        return self.srp_acc_ecef, self.srp_acc_eci
