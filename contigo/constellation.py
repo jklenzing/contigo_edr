@@ -24,9 +24,6 @@ class Constellation:
         # Split into individual spacecraft
         self.spacecraft: dict = multi_sc.split_by_id()
 
-        # Preserve shared time scale
-        self.tscale = multi_sc.tscale
-
     # --------------------------------------------------------------
     @property
     def ids(self) -> list:
