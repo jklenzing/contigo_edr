@@ -6,7 +6,6 @@ import pandas as pd
 import numpy as np
 
 from scipy.integrate import cumulative_simpson
-from scipy.integrate import cumulative_trapezoid
 
 import contigo.constants as constants
 
@@ -49,6 +48,7 @@ class EDRDensity:
         """
         Returns dictionary keyed by spacecraft ID.
         """
+        # system is the constellation of spacecraft
         spacecraft_dict = self.system.spacecraft
 
         results = {}
@@ -85,7 +85,7 @@ class EDRDensity:
             # x-axis for integrating
             acc_int = np.zeros(N) 
             x_ax = (pd.DatetimeIndex(sc.time).to_julian_date()*86400.).to_numpy()
-            x_ax = x_ax-x_ax.min() 
+            x_ax = x_ax-x_ax.min()
             for m_id, m_acc in acc_con.items():
                 # if the force model returns multiple accelerations
                 # loop through them all
@@ -98,7 +98,7 @@ class EDRDensity:
                         acc_int += cumulative_simpson(a_int, x=x_ax, initial=0)
                 else:
                     a_int = (m_acc[sc_id]*sc_v).sum(axis=1)
-                    acc_int += cumulative_simpson(a_int, x=x_ax, initial=0)      
+                    acc_int += cumulative_simpson(a_int, x=x_ax, initial=0)
 
             edr = edr - acc_int
             edr = edr - edr[0] 
@@ -108,4 +108,26 @@ class EDRDensity:
         return results
     
     def compute_denom(self) -> dict:
-        pass
+        """
+        Returns dictionary keyed by spacecraft ID.
+        """
+        # system is the constellation of spacecraft
+        spacecraft_dict = self.system.spacecraft
+
+        denom = {}
+
+        for sc_id, sc in spacecraft_dict.items():
+            
+            b=sc.cd_arr*(sc.drag_area_arr/1000.**2)/sc.sc_mass_arr
+
+            sc_v = sc.state_ecef[:, 3:6]
+            sc_v3 = np.linalg.norm(sc_v,axis=1)**3
+
+            x_ax = (pd.DatetimeIndex(sc.time).to_julian_date()*86400.).to_numpy()
+            x_ax = x_ax-x_ax.min()
+
+            y_int = b*sc_v3
+
+            denom[sc_id] = cumulative_simpson(y_int,x=x_ax,initial=0)
+
+        return denom
