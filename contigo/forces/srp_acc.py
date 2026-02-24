@@ -15,7 +15,8 @@ import contigo.config as config
 from contigo.forces import srp_utils
 
 class SRPGMATAcc:
-
+    """Deriving *Cannonball* SRP accelleration from GMAT
+    """
 
     def __init__(self,
                  sc_state: npt.ArrayLike | None = None,
@@ -25,7 +26,32 @@ class SRPGMATAcc:
                  sc_mass:  npt.ArrayLike | None = None,
                  apistartup: str | None = None, 
                  gmat_install: str | None = None):
-        
+        """Initialize the SRPGMATAcc class for deriving SRP acceleration from the
+        General Mission Analysis Tool (GMAT). 
+
+        This instantiation uses the Cannonball method from the GMAT API.
+
+        Both the ECEF and ECI accelerations are derived in km/s^2. 
+
+        Parameters
+        ----------
+        sc_state : npt.ArrayLike | None, optional
+            Spacecraft state vector (N,[x,y,z,vx,vy,vz]), by default None.
+        sc_time : npt.ArrayLike | None, optional
+            Spacecraft time (N,), by default None.
+        sc_cr : npt.ArrayLike | None, optional
+            Spacecraft coeffecient of reflection (N,), by default None.
+            
+        sc_srparea : npt.ArrayLike | None, optional
+           The area used to compute acceleration due to solar radiation pressure 
+           for the spherical SRP area model, m^2 (N, ). By default None
+        sc_mass : npt.ArrayLike | None, optional
+           Spacecraft mass, kg (N, ), by default None
+        apistartup : str | None, optional
+            GMAT startup file for loading and adding GMAT to the python path.
+        gmat_install : str | None, optional
+            GMAT installation  directory for adding GMAT to the python path.
+        """
         #first need to setup and load GMAT Python API
         srp_utils.setup_gmat(apistartup,gmat_install)
 
@@ -39,7 +65,8 @@ class SRPGMATAcc:
         self.srp_acc_eci = None
 
     def calc_srp(self):
-
+        """Calculate ECEF and ECI SRP acceleration
+        """
         gmat = config.state['gmatpy']
 
         gtime = pd.to_datetime(self.time).strftime('%d %b %Y %H:%M:%S.000')
@@ -119,10 +146,36 @@ class SRPGMATAcc:
         self.srp_acc_eci = srp_der
 
     def get_ecef_acc(self):
+        """Return ECEF acceleration
+        """        
         return self.srp_acc_ecef
     
     def get_eci_acc(self):
+        """Return ECI acceleration
+        """  
         return self.srp_acc_eci
 
     def get_all_acc(self):
+        """Return ECEF and ECI acceleration
+        """  
         return self.srp_acc_ecef, self.srp_acc_eci
+
+
+class SRPAcc:
+
+
+    def __init__(self, 
+                 apistartup: str | None = None, 
+                 gmat_install: str | None = None):
+        
+        self.apistartup = apistartup
+        self.gmat_install = gmat_install
+
+    def acceleration(self, 
+                     constellation: Constellation
+                     ) -> dict[str, npt.NDArray[np.float64]]:
+        
+    def potential(self, 
+                constellation: Constellation
+                ) -> dict[str, npt.NDArray[np.float64]]:
+        raise NotImplementedError("Not implemented for SRPAcc.")
