@@ -11,6 +11,7 @@ import contigo.config as config
 
 from .grav_utils import read_icgem_coeff
 from .grav_utils import get_potential
+from ..constellation import Constellation
 
 logger = logging.getLogger(__name__)
 
@@ -183,11 +184,15 @@ class EarthPotential:
         self.pot_file = pot_file
         self.lmax = lmax
 
-    def acceleration(self, constellation):
+    def acceleration(self, 
+                     constellation: Constellation
+                     ) -> dict[str, npt.NDArray[np.float64]]:
         raise NotImplementedError("Not implemented for EarthPotential.")
 
 
-    def potential(self, constellation):
+    def potential(self, 
+                     constellation: Constellation
+                     ) -> dict[str, npt.NDArray[np.float64]]:
         pot_dict = {}
 
         for sc_id, sc in constellation.spacecraft.items():
