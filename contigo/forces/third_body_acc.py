@@ -319,7 +319,6 @@ class ThirdBody:
 
         Initialization defines the ephemeris to use and the solar system bodies
 
-
         Returns:
             dict[spacecraft_id] -> (N,3)
         """
