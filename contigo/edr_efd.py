@@ -46,6 +46,9 @@ class EDRDensity:
 
     def compute_edr(self) -> dict:
         """
+        Compute EDR (Delta Epsilon) from equation A18 and A19 of
+        https://doi.org/10.1029/2024EA003898
+
         Returns dictionary keyed by spacecraft ID.
         """
         # system is the constellation of spacecraft
@@ -109,6 +112,9 @@ class EDRDensity:
     
     def compute_denom(self) -> dict:
         """
+        Compute denomenator of equation A20 of
+        https://doi.org/10.1029/2024EA003898
+
         Returns dictionary keyed by spacecraft ID.
         """
         # system is the constellation of spacecraft
