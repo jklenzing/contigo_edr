@@ -95,6 +95,7 @@ class Spacecraft:
     # ------------------------------------------------------------------
     state_ecef: npt.NDArray[np.float64] = field(init=False)  # (N,6)
     stime: pd.DatetimeIndex = field(init=False)              # (N,)
+    sspice_et: npt.NDArray[np.float64] = field(init=False)   # (N,)
     tscale: str = field(init=False)                          # validated time scale
     sc_id: npt.NDArray = field(init=False)                   # (N,)
     unique_ids: npt.NDArray = field(init=False)
@@ -197,6 +198,7 @@ class Spacecraft:
         # Commit normalized state
         self.state_ecef = s
         self.stime = t
+        self.sspice_et = utils.spice_et(self.stime, self.tscale)
         self.sc_id = sc_id_arr
         self.unique_ids = np.unique(self.sc_id)
 
@@ -285,6 +287,7 @@ class Spacecraft:
         # Commit normalized state
         self.state_ecef = s
         self.stime = t
+        self.sspice_et = utils.spice_et(self.stime, self.tscale)
         self.sc_id = sc_id_arr
         self.unique_ids = np.unique(self.sc_id)
 
