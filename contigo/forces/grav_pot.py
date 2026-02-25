@@ -165,7 +165,7 @@ class GravPot:
              ValueError('Potential needs to be calculated.')
 
 
-class EarthPotential:
+class EarthPotential(ForceModel):
     """
 
     """
