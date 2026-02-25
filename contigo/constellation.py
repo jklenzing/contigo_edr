@@ -23,6 +23,9 @@ class Constellation:
 
         # Split into individual spacecraft
         self.spacecraft: dict = multi_sc.split_by_id()
+        # Get constellation times
+        self.sspice_et = multi_sc.sspice_et
+
 
     # --------------------------------------------------------------
     @property
