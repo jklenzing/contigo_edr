@@ -149,15 +149,11 @@ class ThirdBodyAcc:
         j2000 = pd.Timestamp('2000-01-01 12:00:00')
         spj2000 = ((self.stime - j2000).dt.total_seconds()).to_list()
 
+        ephem = SPICE_Ephem(ephemeris=self.ephemeris)
 
-        # set all needed attributes
+         # set all needed attributes
         et = [spice.unitim(sp_in,self.scale,'ET') for sp_in in spj2000]
 
-        # get the body positions in ecef
-        #bd_ecef = np.array([spice.spkpos(bd,et,'ITRF93','NONE','EARTH')[0]
-        #           for bd in self.body])
-
-        ephem = SPICE_Ephem(ephemeris=self.ephemeris)
         _, bd_ecef = ephem(body=self.body,et=et)
 
         bd_acc = tba_pairwise_numba(self.spos, bd_ecef, self.GM)
