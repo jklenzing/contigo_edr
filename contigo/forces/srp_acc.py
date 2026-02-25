@@ -162,7 +162,7 @@ class SRPGMATAcc:
         return self.srp_acc_ecef, self.srp_acc_eci
 
 
-class SRPAcc:
+class SRPAcc(ForceModel):
     """
     SRP accelerations for invdividual satellites in a Constellation object.
     """

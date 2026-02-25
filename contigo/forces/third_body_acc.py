@@ -24,6 +24,8 @@ from ..constellation import Constellation
 
 logger = logging.getLogger(__name__)
 
+#TODO remove ephemeris from here and into
+
 class ThirdBodyAcc:
     """Deriving Third Body Acceleration using JPL SPICE
     """
@@ -272,7 +274,7 @@ class ThirdBodyAcc:
         return self.bd_ecef
 
 
-class ThirdBody:
+class ThirdBody(ForceModel):
     """
     Third-body gravity force operating on invdividual satellites in a Constellation
     object.
