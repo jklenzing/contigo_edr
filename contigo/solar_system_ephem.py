@@ -1,4 +1,7 @@
+"""Derive third body accelerations for an Earth orbiting spacecraft.
 
+added: 25/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
+"""
 import posixpath
 import urllib.parse
 import logging
@@ -17,11 +20,7 @@ import contigo.config as config
 
 logger = logging.getLogger(__name__)
 
-# ==============================================================
-# Ephemeris Provider
-# ============================================================== 
-
-class SPICE_Ephem:
+class SPICEEphem:
     """
     SPICE-backed ephemeris provider with unique-time optimization.
     """
@@ -30,6 +29,7 @@ class SPICE_Ephem:
                  ephemeris: str='de440s',
                  frame: str = "ITRF93", 
                  observer: str = "EARTH"):
+        
         self.frame = frame
         self.observer = observer
         self.ephemeris= ephemeris
@@ -67,8 +67,8 @@ class SPICE_Ephem:
         """
         # set file names 
         ephem_f = f'{self.ephemeris}.bsp'
-        leaps_f = 'naif0012.tls'
-        pck_f = 'earth_latest_high_prec.bpc'
+        leaps_f = config.LEAP_FILE
+        pck_f = config.PCK_FILE
         # get file paths
         sp_kernels = [path.join(config.DATA_DIR,fp) for fp in [ephem_f,leaps_f,pck_f]]
 
@@ -140,3 +140,97 @@ class SPICE_Ephem:
                     utils.dl_file(url,fp)
         
         config.state['kernel_downloaded'] = True
+
+
+class SolarSystemEnvironment:
+    """
+    High-performance solar system ephemeris cache.
+
+    Design
+    ------
+    • Bodies are static after initialization
+    • Tolerance is static after initialization
+    • Internally uses a dictionary keyed by quantized time
+    • O(1) lookup instead of O(N²) tolerance scans
+    • Cached arrays rebuilt lazily only if needed
+    """
+
+    def __init__(
+        self,
+        bodies: npt.NDArray[np.str_],
+        et: npt.NDArray[np.float64],
+        tolerance: float,
+        provider: SPICEEphem,
+    ) -> None:
+
+        self.bodies = np.array([b.upper() for b in bodies])
+        self.tolerance = float(tolerance)
+        self._provider = provider
+
+        # Internal dictionary cache
+        # key   -> quantized time (float)
+        # value -> (Nb, 3) position array
+        self._cache: dict[float, np.ndarray] = {}
+
+        et = np.asarray(et, dtype=float)
+        self._load_times(et)
+
+    # ----------------------------------------------------------
+    # Public API
+    # ----------------------------------------------------------
+
+    def get_ephem(
+        self,
+        et: npt.NDArray[np.float64],
+    ) -> tuple[np.ndarray, np.ndarray]:
+
+        et = np.asarray(et, dtype=float)
+
+        # Ensure all times are loaded
+        self._load_times(et)
+
+        # Build output array directly from dictionary
+        nb = len(self.bodies)
+        nt = len(et)
+        r_out = np.empty((nb, nt, 3), dtype=float)
+
+        for i, t in enumerate(et):
+            key = self._quantize(t)
+            r_out[:, i, :] = self._cache[key]
+
+        return et, r_out
+
+    # ----------------------------------------------------------
+    # Internal
+    # ----------------------------------------------------------
+
+    def _quantize(self, t: npt.NDArray[np.float64]) -> npt.NDArray[np.int_]:
+        """Quantize time using tolerance and return integer bin."""
+        if self.tolerance == 0.0:
+            # exact integer seconds binning
+            return np.round(t)
+        return np.round(t / self.tolerance)
+
+    def _load_times(self, et: np.ndarray) -> None:
+        """
+        Load only times not already cached.
+        """
+
+        # Quantize requested times
+        q_times = self._quantize(et)
+
+        # Identify which quantized times are missing
+        missing = [t for t in q_times if t not in self._cache]
+
+        if not missing:
+            return
+
+        missing = np.array(missing, dtype=float)
+
+        # Call provider once for all missing times
+        _, r_new = self._provider(self.bodies, missing)
+
+        # Store per-time slice in dictionary
+        for i, t in enumerate(missing):
+            # r_new shape = (Nb, Nt_missing, 3)
+            self._cache[t] = r_new[:, i, :]
