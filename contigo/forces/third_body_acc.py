@@ -18,7 +18,7 @@ import spiceypy as spice
 import contigo.utils as utils
 import contigo.config as config
 
-from contigo.solar_system_ephem import SPICE_Ephem
+from contigo.solar_system_ephem import SPICEEphem
 from contigo.forces.base import ForceModel
 
 from .tba_utils import tba_pairwise_numba
@@ -146,13 +146,20 @@ class ThirdBodyAcc:
         if self.stime.dt.tz is not None and self.stime.dt.tz != timezone.utc:
             print(str(self.stime.dt.tz))
             raise ValueError('stime should be time zone naive or UTC')
-        j2000 = pd.Timestamp('2000-01-01 12:00:00')
-        spj2000 = ((self.stime - j2000).dt.total_seconds()).to_list()
+        
 
-        ephem = SPICE_Ephem(ephemeris=self.ephemeris)
+        ephem = SPICEEphem(ephemeris=self.ephemeris)
 
-         # set all needed attributes
-        et = [spice.unitim(sp_in,self.scale,'ET') for sp_in in spj2000]
+        # set all needed attributes
+        if self.scale == 'UTC':
+            t_str = pd.to_datetime(np.array(self.stime)).strftime('%d %b %Y %H:%M:%S.%f')
+            et = np.array([spice.utc2et(sp_in) for sp_in in t_str]) 
+        else:
+            j2000 = pd.Timestamp('2000-01-01 12:00:00')
+            spj2000 = ((self.stime - j2000).dt.total_seconds()).to_list()
+            et = np.array([spice.unitim(sp_in,tscale,'ET') for sp_in in spj2000])
+
+        et = np.array(et)
 
         _, bd_ecef = ephem(body=self.body,et=et)
 
