@@ -198,6 +198,11 @@ class SolarSystemEnvironment:
             key = self._quantize(t)
             r_out[:, i, :] = self._cache[key]
 
+        # the above can be made faster with
+        # this needs to be tested
+        #key = self._quantize(et)
+        #r_out = np.array(itemgetter(*key)(self._cache))
+
         return et, r_out
 
     # ----------------------------------------------------------
@@ -208,8 +213,8 @@ class SolarSystemEnvironment:
         """Quantize time using tolerance and return integer bin."""
         if self.tolerance == 0.0:
             # exact integer seconds binning
-            return np.round(t)
-        return np.round(t / self.tolerance)
+            return np.round(t, decimals=1).astype(int)
+        return np.round(t / self.tolerance, decimals=1).astype(int)
 
     def _load_times(self, et: np.ndarray) -> None:
         """
