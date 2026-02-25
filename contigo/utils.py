@@ -5,13 +5,25 @@ added: 17/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
 import pathlib
 import functools
 import shutil
+import posixpath
+import urllib.parse
+import logging
 import requests
+
+import numpy as np
+import numpy.typing as npt
+
+from os import path
 from datetime import datetime
 from dateutil import tz
+from tqdm import tqdm
 
+import spiceypy as spice
+
+import contigo.config as config
 import pandas as pd
 
-from tqdm import tqdm
+logger = logging.getLogger(__name__)
 
 
 def dl_file(url, filename):
@@ -43,14 +55,14 @@ def dl_file(url, filename):
         file_size = int(rs.headers.get('Content-Length', 0))
         
     
-    path = pathlib.Path(filename).expanduser().resolve()
-    path.parent.mkdir(parents=True, exist_ok=True)
+    fpath = pathlib.Path(filename).expanduser().resolve()
+    fpath.parent.mkdir(parents=True, exist_ok=True)
     
     desc = "(Unknown total file size)" if file_size == 0 else ""
     post = f'Downloading: {url} to {filename}'
     r.raw.read = functools.partial(r.raw.read, decode_content=True)  # Decompress if needed
     with tqdm.wrapattr(r.raw, "read", total=file_size, desc=desc, postfix=post, position=0, leave=True) as r_raw:
-        with path.open("wb") as f:
+        with fpath.open("wb") as f:
             shutil.copyfileobj(r_raw, f)
             
 def wf_mtime(url):
@@ -128,3 +140,41 @@ def df_sp3(fn):
     sdf = pd.merge(pdf, vdf, left_index=True, right_index=True)
 
     return sdf
+
+def spice_et(stime: npt.ArrayLike, tscale: str):
+
+    allowed = {'GPS', 'TAI', 'UTC', 'ET', 'TDB'}
+    tscale = tscale.upper()
+    if tscale not in allowed:
+        raise ValueError(f"tscale must be one of {allowed}")
+
+    # get the leapsecond kernel and make sure it's
+    # loaded, download it if we don't have it
+    leaps_f = config.LEAP_FILE
+    lp_kernel = path.join(config.DATA_DIR,leaps_f)
+
+    sp_kcnt = spice.ktotal('ALL')
+    sp_loaded = [spice.kdata(i,'ALL')[0] for i in range(sp_kcnt)]
+    if path.exists(lp_kernel) and [lp_kernel] not in sp_loaded:
+        spice.furnsh(lp_kernel) # need to check if kernels are loaded
+    else:
+        base_url = 'https://naif.jpl.nasa.gov'
+        base_pth = '/pub/naif/generic_kernels'
+        leaps_d = 'lsk'
+
+        leaps_url = urllib.parse.urljoin(base_url,
+                                      posixpath.join(base_pth,leaps_d,leaps_f))
+
+        logger.info('Downloading kernel - %s', lp_kernel)
+        dl_file(leaps_url, lp_kernel)
+        spice.furnsh(lp_kernel)
+
+    if tscale == 'UTC':
+        t_str = pd.to_datetime(np.array(stime)).strftime('%d %b %Y %H:%M:%S.%f')
+        et = np.array([spice.utc2et(sp_in) for sp_in in t_str]) 
+    else:
+        j2000 = pd.Timestamp('2000-01-01 12:00:00')
+        spj2000 = ((stime - j2000).dt.total_seconds()).to_list()
+        et = np.array([spice.unitim(sp_in,tscale,'ET') for sp_in in spj2000])
+
+    return et
