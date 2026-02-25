@@ -9,6 +9,8 @@ import numpy.typing as npt
 
 import contigo.config as config
 
+from contigo.forces.base import ForceModel
+
 from .grav_utils import read_icgem_coeff
 from .grav_utils import get_potential
 from ..constellation import Constellation
@@ -174,7 +176,7 @@ class EarthPotential(ForceModel):
 
     def __init__(self,
                  pot_file: str = 'EIGEN-2.gfc',
-                 lmax: int=100,):
+                 lmax: int=50,):
         """
 
         Parameters

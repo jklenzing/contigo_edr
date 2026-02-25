@@ -12,6 +12,7 @@ import pandas as pd
 
 import contigo.config as config
 
+from contigo.forces.base import ForceModel
 from contigo.forces import srp_utils
 from ..constellation import Constellation
 
