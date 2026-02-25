@@ -436,6 +436,7 @@ class Spacecraft:
     class SpacecraftState:
         state_ecef: npt.NDArray[np.float64]
         stime: pd.DatetimeIndex
+        sspice_et: npt.NDArray[np.float64]
         sc_id: npt.NDArray
         unique_ids: npt.NDArray
         cd: npt.NDArray
@@ -468,6 +469,7 @@ class Spacecraft:
             self._state_data_cache = Spacecraft.SpacecraftState(
                 state_ecef=self.state_ecef,
                 stime=self.stime,
+                sspice_et=self.sspice_et,
                 sc_id=self.sc_id,
                 unique_ids=self.unique_ids,
                 cd=self.cd_arr,
