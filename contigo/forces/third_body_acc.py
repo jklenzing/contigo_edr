@@ -18,6 +18,9 @@ import spiceypy as spice
 import contigo.utils as utils
 import contigo.config as config
 
+from contigo.solar_system_ephem import SPICE_Ephem
+from contigo.forces.base import ForceModel
+
 from .tba_utils import tba_pairwise_numba
 from ..constants import GMc
 from ..constellation import Constellation
@@ -129,8 +132,6 @@ class ThirdBodyAcc:
         self.bd_ecef = None
         self.bd_acc = None
 
-        self.load_kernels()
-
     def calc_tba(self):
         """Derives third body accelerations from spacecraft positions for solar
         system bodies.
@@ -148,12 +149,16 @@ class ThirdBodyAcc:
         j2000 = pd.Timestamp('2000-01-01 12:00:00')
         spj2000 = ((self.stime - j2000).dt.total_seconds()).to_list()
 
+
         # set all needed attributes
         et = [spice.unitim(sp_in,self.scale,'ET') for sp_in in spj2000]
 
         # get the body positions in ecef
-        bd_ecef = np.array([spice.spkpos(bd,et,'ITRF93','NONE','EARTH')[0]
-                   for bd in self.body])
+        #bd_ecef = np.array([spice.spkpos(bd,et,'ITRF93','NONE','EARTH')[0]
+        #           for bd in self.body])
+
+        ephem = SPICE_Ephem(ephemeris=self.ephemeris)
+        _, bd_ecef = ephem(body=self.body,et=et)
 
         bd_acc = tba_pairwise_numba(self.spos, bd_ecef, self.GM)
 
