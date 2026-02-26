@@ -13,7 +13,7 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
-import contigo.utils as utils
+from contigo.utils import time_utils
 
 ##TODO Future proof units
 
@@ -297,7 +297,7 @@ class Spacecraft:
             if tscale not in allowed:
                 raise ValueError(f"tscale_input must be one of {allowed}")
             self.tscale = tscale
-            
+
     def _normalize_properties(self, N: int, df: pd.DataFrame | None = None) -> None:
         """Normalize scalar or array spacecraft properties to strict (N,) arrays."""
 
@@ -334,7 +334,10 @@ class Spacecraft:
         else:
             raise ValueError(f"Unsupported unit: {self.unit}")
         
-    def _normalize_time(selt):
+    def _normalize_time(self):
+
+        self.sspice_et = time_utils.spice_et(self.stime,self.tscale, 'ET')
+        self.sspice_gps = time_utils.spice_et(self.stime,self.tscale, 'GPS')
         
     # ------------------------------------------------------------------
     def _expand_files(self,
