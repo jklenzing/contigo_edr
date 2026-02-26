@@ -157,7 +157,7 @@ class ThirdBodyAcc:
         else:
             j2000 = pd.Timestamp('2000-01-01 12:00:00')
             spj2000 = ((self.stime - j2000).dt.total_seconds()).to_list()
-            et = np.array([spice.unitim(sp_in,tscale,'ET') for sp_in in spj2000])
+            et = np.array([spice.unitim(sp_in,self.scale,'ET') for sp_in in spj2000])
 
         et = np.array(et)
 
