@@ -35,7 +35,7 @@ def spice_time(stime: npt.ArrayLike, tscale: str, out_scale: str):
         t_str = pd.to_datetime(np.array(stime)).strftime('%d %b %Y %H:%M:%S.%f')
         et_t = np.array([spice.utc2et(sp_in) for sp_in in t_str]) 
         if out_scale not in {'ET','TBD'}:
-            out_t = np.array([spice.unitim(sp_in,tscale,out_scale) for sp_in in et_t]) 
+            out_t = np.array([spice.unitim(sp_in,'ET',out_scale) for sp_in in et_t]) 
         else:
             out_t = et_t
 
