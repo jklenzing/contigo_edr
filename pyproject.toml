@@ -62,8 +62,8 @@ docs = [
     "mkdocstrings[python]"
 ]
 
-[tool.setuptools]
-packages = ["contigo"]
+#[tool.setuptools]
+#packages = ["contigo"]
 
 [tool.setuptools.packages.find]
 where = ["."]  # list of folders that contain the packages (["."] by default)
