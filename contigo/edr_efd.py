@@ -9,8 +9,9 @@ from scipy.integrate import cumulative_simpson
 
 import contigo.constants as constants
 
-from .forces.base import ForceModel
-from .constellation import Constellation
+from contigo.forces.base import ForceModel
+from contigo.constellation import Constellation
+from contigo.solar_system_ephem import SolarSystemEnvironment
 
 
 # ==================================================================
@@ -31,13 +32,20 @@ class EDRDensity:
     """
 
     def __init__(self,
-                 sc_system: Constellation,
+                 constellation: Constellation,
+                 solarsys_env: SolarSystemEnvironment,
                  force_models: list[ForceModel],
                  potential_model: ForceModel,):
         
-        self.system = sc_system
+        self.constellation = constellation
+        self.solarsys_env = solarsys_env 
         self.force_models = force_models
         self.potential_model = potential_model
+
+        unique_gps, u_id = np.unique(constellation.sspice_gps, return_index=True)
+
+        # load ephemeris for all unique times
+        self.solarsys_env._load_times(constellation.sspice_et[u_id], unique_gps)
 
     # --------------------------------------------------------------
     def compute(self) -> dict:
@@ -52,7 +60,7 @@ class EDRDensity:
         Returns dictionary keyed by spacecraft ID.
         """
         # system is the constellation of spacecraft
-        spacecraft_dict = self.system.spacecraft
+        spacecraft_dict = self.constellation.spacecraft
 
         results = {}
 
@@ -60,13 +68,13 @@ class EDRDensity:
 
         # derive the earth potential for each sc in the 
         # constellation
-        e_gp_con = self.potential_model.potential(self.system)
+        e_gp_con = self.potential_model.potential(self.constellation)
 
         # derive the accelerations from the force models
         # for the constellation
         acc_con = { }
         for model in self.force_models:
-            acc_con[model.name] = model.acceleration(self.system)
+            acc_con[model.name] = model.acceleration(self.constellation, self.solarsys_env)
 
         for sc_id, sc in spacecraft_dict.items():
             N = sc.N
@@ -86,8 +94,8 @@ class EDRDensity:
 
             # compute the acceleration integrals
             # x-axis for integrating
-            acc_int = np.zeros(N) 
-            x_ax = (pd.DatetimeIndex(sc.time).to_julian_date()*86400.).to_numpy()
+            acc_int = np.zeros(N)
+            x_ax = sc.sspice_gps
             x_ax = x_ax-x_ax.min()
             for m_id, m_acc in acc_con.items():
                 # if the force model returns multiple accelerations
@@ -118,7 +126,7 @@ class EDRDensity:
         Returns dictionary keyed by spacecraft ID.
         """
         # system is the constellation of spacecraft
-        spacecraft_dict = self.system.spacecraft
+        spacecraft_dict = self.constellation.spacecraft
 
         denom = {}
 

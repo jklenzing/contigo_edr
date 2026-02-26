@@ -9,9 +9,12 @@ import numpy.typing as npt
 
 import contigo.config as config
 
+from contigo.forces.base import ForceModel
+
 from .grav_utils import read_icgem_coeff
 from .grav_utils import get_potential
-from ..constellation import Constellation
+from contigo.constellation import Constellation
+from contigo.solar_system_ephem import SolarSystemEnvironment
 
 logger = logging.getLogger(__name__)
 
@@ -174,7 +177,7 @@ class EarthPotential(ForceModel):
 
     def __init__(self,
                  pot_file: str = 'EIGEN-2.gfc',
-                 lmax: int=100,):
+                 lmax: int=50,):
         """
 
         Parameters
@@ -185,7 +188,8 @@ class EarthPotential(ForceModel):
         self.lmax = lmax
 
     def acceleration(self, 
-                     constellation: Constellation
+                     constellation: Constellation,
+                     solarsys_env: SolarSystemEnvironment
                      ) -> dict[str, npt.NDArray[np.float64]]:
         raise NotImplementedError("Not implemented for EarthPotential.")
 

@@ -26,6 +26,8 @@ def data_path():
 
 # Static configuration values (constants)
 DATA_DIR = data_path()
+LEAP_FILE = 'naif0012.tls'
+PCK_FILE = 'earth_latest_high_prec.bpc'
 
 # Mutable State Values
 state = {'gmat_loaded':False,

@@ -15,12 +15,16 @@ import numpy as np
 import numpy.typing as npt
 import spiceypy as spice
 
-import contigo.utils as utils
+import contigo.utils.utils as utils
 import contigo.config as config
 
+from contigo.solar_system_ephem import SPICEEphem
+from contigo.forces.base import ForceModel
+from contigo.solar_system_ephem import SolarSystemEnvironment
+
 from .tba_utils import tba_pairwise_numba
-from ..constants import GMc
-from ..constellation import Constellation
+from contigo.constants import GMc
+from contigo.constellation import Constellation
 
 logger = logging.getLogger(__name__)
 
@@ -129,8 +133,6 @@ class ThirdBodyAcc:
         self.bd_ecef = None
         self.bd_acc = None
 
-        self.load_kernels()
-
     def calc_tba(self):
         """Derives third body accelerations from spacecraft positions for solar
         system bodies.
@@ -142,112 +144,30 @@ class ThirdBodyAcc:
         # calculate the seconds past j2000 to convert
         # to SPICE ET Ephemeris time (in the SPICE system,
         # this is equivalent to TDB time)
-        if self.stime.dt.tz is not None and self.stime.dt.tz != timezone.utc:
-            print(str(self.stime.dt.tz))
+        if self.stime.tzinfo is not None and self.stime.tzinfo != timezone.utc:
+            print(str(self.stime.tzinfo))
             raise ValueError('stime should be time zone naive or UTC')
-        j2000 = pd.Timestamp('2000-01-01 12:00:00')
-        spj2000 = ((self.stime - j2000).dt.total_seconds()).to_list()
+        
+
+        ephem = SPICEEphem(ephemeris=self.ephemeris)
 
         # set all needed attributes
-        et = [spice.unitim(sp_in,self.scale,'ET') for sp_in in spj2000]
+        if self.scale == 'UTC':
+            t_str = pd.to_datetime(np.array(self.stime)).strftime('%d %b %Y %H:%M:%S.%f')
+            et = np.array([spice.utc2et(sp_in) for sp_in in t_str]) 
+        else:
+            j2000 = pd.Timestamp('2000-01-01 12:00:00')
+            spj2000 = ((self.stime - j2000).total_seconds()).to_list()
+            et = np.array([spice.unitim(sp_in,self.scale,'ET') for sp_in in spj2000])
 
-        # get the body positions in ecef
-        bd_ecef = np.array([spice.spkpos(bd,et,'ITRF93','NONE','EARTH')[0]
-                   for bd in self.body])
+        et = np.array(et)
+
+        _, bd_ecef = ephem(body=self.body,et=et)
 
         bd_acc = tba_pairwise_numba(self.spos, bd_ecef, self.GM)
 
         self.bd_acc = bd_acc
         self.bd_ecef = bd_ecef
-
-    def load_kernels(self):
-        """Download and load the SPICE kernels for deriving body locations
-
-        Checks if an attemp at downloading the kernels has already been done.
-
-        Download will check if files have changed and need to be redownloaded.
-        Checks if kernels are already loaded.
-
-        Loads the kernels.
-
-        Currently loads leap seconds (.tls), ephemeris (.bsp), and Earth orientation 
-        data (.bpc)
-        """
-        # set file names 
-        ephem_f = f'{self.ephemeris}.bsp'
-        leaps_f = 'naif0012.tls'
-        pck_f = 'earth_latest_high_prec.bpc'
-        # get file paths
-        sp_kernels = [path.join(config.DATA_DIR,fp) for fp in [ephem_f,leaps_f,pck_f]]
-
-        # check if we've already attempted to download kernels
-        if config.state['kernel_downloaded'] is False:
-            self.dl_kernels(ephem_f, leaps_f, pck_f)
-
-        # check if kernels are already loaded, load them if not
-        sp_kcnt = spice.ktotal('ALL')
-        sp_loaded = [spice.kdata(i,'ALL')[0] for i in range(sp_kcnt)]
-        for fp in sp_kernels:
-            if fp in sp_loaded:
-                logger.info('Kernel already loaded - %s', fp)
-            else:
-                logger.info('Loading Kernel - %s', fp)
-                spice.furnsh(fp) # need to check if kernels are loaded
-
-    def dl_kernels(self, ephem_f: str, leaps_f: str, pck_f:str):
-        """Download required JPL SPICE kernels.
-
-        Download ephemeris, leap second, and Earth orientation Kernels from JPLs 
-        Navigation and Ancillary Information Facility (NAIF). 
-
-        Will check if local files exist. Will download if files on the server are newer
-        then the local files.
-
-        Parameters
-        ----------
-        ephem_f :str
-            JPL ephemeris file to download.
-        leaps_f : str
-            JPL leap seconds file to download.
-        pck_f : str
-            JPL Earth orientation file to download.
-        """
-        base_url = 'https://naif.jpl.nasa.gov'
-        base_pth = '/pub/naif/generic_kernels'
-        
-        ephem_d = 'spk/planets'
-        leaps_d = 'lsk'
-        pck_d = 'pck'
-
-        ephem_url = urllib.parse.urljoin(base_url,
-                                      posixpath.join(base_pth,ephem_d,ephem_f))
-        leaps_url = urllib.parse.urljoin(base_url,
-                                      posixpath.join(base_pth,leaps_d,leaps_f))
-        pck_url = urllib.parse.urljoin(base_url,
-                                    posixpath.join(base_pth,pck_d,pck_f))
-
-        for url, file in zip([ephem_url,leaps_url,pck_url],[ephem_f,leaps_f,pck_f]):
-            # create file names
-            fp = path.join(config.DATA_DIR,file)
-            if not path.exists(fp):
-                logger.info('Downloading kernel - %s', fp)
-                utils.dl_file(url,fp)
-            else:
-                #check for modification times
-                loc_tz = datetime.now().astimezone().tzinfo
-                gmt_tz = tz.gettz('GMT')
-
-                mod_file = datetime.fromtimestamp(path.getmtime(fp), tz=loc_tz)
-                mod_file = mod_file.astimezone(gmt_tz)
-                mod_url = utils.wf_mtime(url)
-
-                if mod_url == None:
-                    logger.info('Could not determine modification time of %s', url)
-                elif mod_url > mod_file:
-                    logger.info('Downloading new version of %s', url)
-                    utils.dl_file(url,fp)
-        
-        config.state['kernel_downloaded'] = True
 
     def get_tba(self):
         """Get the Third Body Accelerations.
@@ -274,7 +194,7 @@ class ThirdBodyAcc:
         return self.bd_ecef
 
 
-class ThirdBody(ForceModel):
+class ThirdBody():
     """
     Third-body gravity force operating on invdividual satellites in a Constellation
     object.
@@ -311,7 +231,7 @@ class ThirdBody(ForceModel):
 
     def acceleration(self, 
                      constellation: Constellation
-                     ) -> dict[str, npt.NDArray[np.float64]]: 
+                     ) -> dict[str, npt.NDArray[np.float64]]:
         """Derive third body accellerations.
 
         Use ThirdBodyAcc to derive accelerations for satellites in a Constellation 
@@ -345,6 +265,38 @@ class ThirdBody(ForceModel):
 
             tba.calc_tba()
             acc_dict[sc_id] = tba.get_tba()
+
+        return acc_dict
+
+    def potential(self, 
+                  constellation: Constellation
+                  ) -> dict[str, npt.NDArray[np.float64]]:
+        raise NotImplementedError("Not implemented for ThirdBodyAcc.")
+    
+class ThirdBodyEnv(ForceModel):
+    """
+    Third-body gravity force operating on invdividual satellites in a Constellation
+    object.
+    """
+
+    name: str = "ThirdBodyAcceleration"
+
+    def __init__(self):
+        pass
+
+    def acceleration(self, 
+                     constellation: Constellation, 
+                     solarsys_env: SolarSystemEnvironment
+                     ) -> dict[str, npt.NDArray[np.float64]]: 
+
+        acc_dict = {}
+
+        for sc_id, sc in constellation.spacecraft.items():
+
+            _, _, r_pos = solarsys_env.get_ephem(sc.sspice_et, sc.sspice_gps)
+
+            tba = tba_pairwise_numba(sc.state_ecef[:, 0:3], r_pos, solarsys_env.GM)
+            acc_dict[sc_id] = tba
 
         return acc_dict
 

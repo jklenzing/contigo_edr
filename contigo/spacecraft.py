@@ -13,7 +13,8 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
-import contigo.utils as utils
+from contigo.utils import time_utils
+from contigo.utils import utils
 
 ##TODO Future proof units
 
@@ -95,6 +96,8 @@ class Spacecraft:
     # ------------------------------------------------------------------
     state_ecef: npt.NDArray[np.float64] = field(init=False)  # (N,6)
     stime: pd.DatetimeIndex = field(init=False)              # (N,)
+    sspice_et: npt.NDArray[np.float64] = field(init=False)   # (N,)
+    sspice_gps: npt.NDArray[np.float64] = field(init=False)  # (N,)
     tscale: str = field(init=False)                          # validated time scale
     sc_id: npt.NDArray = field(init=False)                   # (N,)
     unique_ids: npt.NDArray = field(init=False)
@@ -129,26 +132,10 @@ class Spacecraft:
                 raise ValueError("Either (state, time) or state_file must be provided")
             self.load_from_file(self.state_file)
         
+        # normalize time
+        self._normalize_time()
         # normalize units
         self._normalize_units()
-
-    def _validate_timescale(self) -> None:
-        """Validate the time scale
-        
-        Time is required to have an attached scale so that the Spacecraft
-        class can work with spiceypy
-
-        Raises:
-            ValueError: the time scale must be one of 'GPS', 'TAI', 'UTC', 'ET', 'TDB'
-        """        
-        allowed = {'GPS', 'TAI', 'UTC', 'ET', 'TDB'}
-        if self.tscale_input is None:
-            self.tscale = 'UTC'
-        else:
-            tscale = self.tscale_input.upper()
-            if tscale not in allowed:
-                raise ValueError(f"tscale_input must be one of {allowed}")
-            self.tscale = tscale
 
     def load_from_arrays(self, state: 
                          npt.ArrayLike,
@@ -179,7 +166,7 @@ class Spacecraft:
         if s.ndim != 2 or s.shape[1] != 6:
             raise ValueError("state must have shape (N,6)")
 
-        t = pd.to_datetime(time, utc=False)
+        t = pd.to_datetime(np.array(time), utc=False)
         if len(t) != s.shape[0]:
             raise ValueError("state and time must have the same length")
 
@@ -262,7 +249,7 @@ class Spacecraft:
             raise ValueError(f"Missing required columns: {missing}")
 
         # Normalize time
-        t = pd.to_datetime(df_all[self.time_col], utc=False)
+        t = pd.to_datetime(df_all[self.time_col].to_numpy(), utc=False)
 
         # Normalize state vector
         s = df_all[[
@@ -294,6 +281,24 @@ class Spacecraft:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+    def _validate_timescale(self) -> None:
+        """Validate the time scale
+        
+        Time is required to have an attached scale so that the Spacecraft
+        class can work with spiceypy
+
+        Raises:
+            ValueError: the time scale must be one of 'GPS', 'TAI', 'UTC', 'ET', 'TDB'
+        """        
+        allowed = {'GPS', 'TAI', 'UTC', 'ET', 'TDB'}
+        if self.tscale_input is None:
+            raise ValueError("Time scale of the spacecraft, tscale_input, must be set")
+        else:
+            tscale = self.tscale_input.upper()
+            if tscale not in allowed:
+                raise ValueError(f"tscale_input must be one of {allowed}")
+            self.tscale = tscale
+
     def _normalize_properties(self, N: int, df: pd.DataFrame | None = None) -> None:
         """Normalize scalar or array spacecraft properties to strict (N,) arrays."""
 
@@ -329,6 +334,11 @@ class Spacecraft:
             pass
         else:
             raise ValueError(f"Unsupported unit: {self.unit}")
+        
+    def _normalize_time(self):
+
+        self.sspice_et = time_utils.spice_time(self.stime,self.tscale, 'ET')
+        self.sspice_gps = time_utils.spice_time(self.stime,self.tscale, 'GPS')
         
     # ------------------------------------------------------------------
     def _expand_files(self,
@@ -433,6 +443,8 @@ class Spacecraft:
     class SpacecraftState:
         state_ecef: npt.NDArray[np.float64]
         stime: pd.DatetimeIndex
+        sspice_et: npt.NDArray[np.float64]
+        sspice_gps: npt.NDArray[np.float64]
         sc_id: npt.NDArray
         unique_ids: npt.NDArray
         cd: npt.NDArray
@@ -465,6 +477,8 @@ class Spacecraft:
             self._state_data_cache = Spacecraft.SpacecraftState(
                 state_ecef=self.state_ecef,
                 stime=self.stime,
+                sspice_et=self.sspice_et,
+                sspice_gps=self.sspice_gps,
                 sc_id=self.sc_id,
                 unique_ids=self.unique_ids,
                 cd=self.cd_arr,

@@ -12,8 +12,10 @@ import pandas as pd
 
 import contigo.config as config
 
+from contigo.forces.base import ForceModel
 from contigo.forces import srp_utils
-from ..constellation import Constellation
+from contigo.constellation import Constellation
+from contigo.solar_system_ephem import SolarSystemEnvironment
 
 class SRPGMATAcc:
     """Deriving *Cannonball* SRP accelleration from GMAT
@@ -187,7 +189,8 @@ class SRPAcc(ForceModel):
         self.gmat_install = gmat_install
 
     def acceleration(self, 
-                     constellation: Constellation
+                     constellation: Constellation,
+                     solarsys_env: SolarSystemEnvironment
                      ) -> dict[str, npt.NDArray[np.float64]]:
         """Derive SRP accelerations. 
 

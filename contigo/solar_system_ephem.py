@@ -1,0 +1,273 @@
+"""Derive third body accelerations for an Earth orbiting spacecraft.
+
+added: 25/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
+"""
+import posixpath
+import urllib.parse
+import logging
+
+from os import path
+from operator import itemgetter
+from datetime import datetime, timezone
+from dateutil import tz
+
+
+import numpy as np
+import numpy.typing as npt
+
+import spiceypy as spice
+
+import contigo.utils.utils as utils
+import contigo.config as config
+
+from contigo.constants import GMc
+
+logger = logging.getLogger(__name__)
+
+class SPICEEphem:
+    """
+    SPICE-backed ephemeris provider with unique-time optimization.
+    """
+
+    def __init__(self, 
+                 ephemeris: str='de440s',
+                 frame: str = "ITRF93", 
+                 observer: str = "EARTH"):
+        
+        self.frame = frame
+        self.observer = observer
+        self.ephemeris= ephemeris
+
+        self.load_kernels()
+
+    def __call__(self, body: npt.NDArray[np.str_], et: np.ndarray):
+        
+        # find the unique values of et and return their indecies
+        # return the inverse indices of that allow the reconstruction
+        # of the orignal array
+        unique_et, inv = np.unique(et, return_inverse=True)
+
+        r_unique = np.array(
+            [
+            spice.spkpos(bd.upper(), unique_et, self.frame,'NONE',self.observer)[0]
+            for bd in body
+            ])
+
+        r_body = r_unique[:,inv,:]
+        return et, r_body
+    
+    def load_kernels(self):
+        """Download and load the SPICE kernels for deriving body locations
+
+        Checks if an attemp at downloading the kernels has already been done.
+
+        Download will check if files have changed and need to be redownloaded.
+        Checks if kernels are already loaded.
+
+        Loads the kernels.
+
+        Currently loads leap seconds (.tls), ephemeris (.bsp), and Earth orientation 
+        data (.bpc)
+        """
+        # set file names 
+        ephem_f = f'{self.ephemeris}.bsp'
+        leaps_f = config.LEAP_FILE
+        pck_f = config.PCK_FILE
+        # get file paths
+        sp_kernels = [path.join(config.DATA_DIR,fp) for fp in [ephem_f,leaps_f,pck_f]]
+
+        # check if we've already attempted to download kernels
+        if config.state['kernel_downloaded'] is False:
+            self.dl_kernels(ephem_f, leaps_f, pck_f)
+
+        # check if kernels are already loaded, load them if not
+        sp_kcnt = spice.ktotal('ALL')
+        sp_loaded = [spice.kdata(i,'ALL')[0] for i in range(sp_kcnt)]
+        for fp in sp_kernels:
+            if fp in sp_loaded:
+                logger.info('Kernel already loaded - %s', fp)
+            else:
+                logger.info('Loading Kernel - %s', fp)
+                spice.furnsh(fp) # need to check if kernels are loaded
+
+    def dl_kernels(self, ephem_f: str, leaps_f: str, pck_f:str):
+        """Download required JPL SPICE kernels.
+
+        Download ephemeris, leap second, and Earth orientation Kernels from JPLs 
+        Navigation and Ancillary Information Facility (NAIF). 
+
+        Will check if local files exist. Will download if files on the server are newer
+        then the local files.
+
+        Parameters
+        ----------
+        ephem_f :str
+            JPL ephemeris file to download.
+        leaps_f : str
+            JPL leap seconds file to download.
+        pck_f : str
+            JPL Earth orientation file to download.
+        """
+        base_url = 'https://naif.jpl.nasa.gov'
+        base_pth = '/pub/naif/generic_kernels'
+        
+        ephem_d = 'spk/planets'
+        leaps_d = 'lsk'
+        pck_d = 'pck'
+
+        ephem_url = urllib.parse.urljoin(base_url,
+                                      posixpath.join(base_pth,ephem_d,ephem_f))
+        leaps_url = urllib.parse.urljoin(base_url,
+                                      posixpath.join(base_pth,leaps_d,leaps_f))
+        pck_url = urllib.parse.urljoin(base_url,
+                                    posixpath.join(base_pth,pck_d,pck_f))
+
+        for url, file in zip([ephem_url,leaps_url,pck_url],[ephem_f,leaps_f,pck_f]):
+            # create file names
+            fp = path.join(config.DATA_DIR,file)
+            if not path.exists(fp):
+                logger.info('Downloading kernel - %s', fp)
+                utils.dl_file(url,fp)
+            else:
+                #check for modification times
+                loc_tz = datetime.now().astimezone().tzinfo
+                gmt_tz = tz.gettz('GMT')
+
+                mod_file = datetime.fromtimestamp(path.getmtime(fp), tz=loc_tz)
+                mod_file = mod_file.astimezone(gmt_tz)
+                mod_url = utils.wf_mtime(url)
+
+                if mod_url == None:
+                    logger.info('Could not determine modification time of %s', url)
+                elif mod_url > mod_file:
+                    logger.info('Downloading new version of %s', url)
+                    utils.dl_file(url,fp)
+        
+        config.state['kernel_downloaded'] = True
+
+
+class SolarSystemEnvironment:
+    """
+    High-performance solar system ephemeris cache.
+
+    Design
+    ------
+    • Bodies are static after initialization
+    • Tolerance is static after initialization
+    • Internally uses a dictionary keyed by quantized time
+    • O(1) lookup instead of O(N²) tolerance scans
+    • Cached arrays rebuilt lazily only if needed
+    """
+
+    def __init__(
+        self,
+        bodies: npt.NDArray[np.str_],
+        sp_et: npt.NDArray[np.float64] | None,
+        sp_gps: npt.NDArray[np.float64] | None,
+        tolerance: float | None,
+        provider: SPICEEphem,
+    ) -> None:
+
+        self.bodies = np.array([b.upper() for b in bodies])
+        if tolerance is None:
+            self.tolerance = None
+        else:
+            self.tolerance = float(tolerance)
+        self._provider = provider
+
+        # Internal dictionary cache
+        # key   -> quantized time (float)
+        # value -> (Nb, 3) position array
+        self._cache: dict[float, np.ndarray] = {}
+
+        if not isinstance(sp_et, type(None)) and not isinstance(sp_gps, type(None)):
+            sp_et = np.asarray(sp_et, dtype=float)
+            sp_gps = np.asarray(sp_gps,dtype=float)
+            self._load_times(sp_et,sp_gps)
+
+        eph = provider.ephemeris[0:5]
+
+        self.GM = np.array([GMc[eph][bd] for bd in self.bodies],dtype=float)
+
+    # ----------------------------------------------------------
+    # Public API
+    # ----------------------------------------------------------
+
+    def get_ephem(
+        self,
+        sp_et: npt.NDArray[np.float64],
+        sp_gps: npt.NDArray[np.float64],
+    ) -> tuple[np.ndarray, np.ndarray]:
+
+        sp_et = np.asarray(sp_et, dtype=float)
+        sp_gps = np.asarray(sp_gps,dtype=float)
+
+        # Ensure all times are loaded
+        self._load_times(sp_et, sp_gps)
+
+        #-----------
+        # old method
+        #-----------
+        # Build output array directly from dictionary
+        #nb = len(self.bodies)
+        #nt = len(et)
+        #r_out = np.empty((nb, nt, 3), dtype=float)
+
+        #for i, t in enumerate(et):
+        #    key = self._quantize(t)
+        #    r_out[:, i, :] = self._cache[key]
+
+        #-----------
+        # new method
+        # ~10x faster
+        #-----------
+        key = self._quantize(sp_gps)
+        r_out = np.array(itemgetter(*key)(self._cache))
+        r_out = np.swapaxes(r_out,0,1)
+
+        return sp_et, sp_gps, r_out
+
+    # ----------------------------------------------------------
+    # Internal
+    # ----------------------------------------------------------
+
+    def _quantize(self, t: npt.NDArray[np.float64]) -> npt.NDArray[np.int_ | np.float64]:
+        """Quantize time using tolerance and return integer bin."""
+        if self.tolerance == 0.0:
+            # exact integer seconds binning
+            return np.round(t).astype(int)
+        elif self.tolerance is None:
+            return t
+        return np.round(t / self.tolerance).astype(int)
+
+    def _load_times(self, 
+                    sp_et: np.ndarray,
+                    sp_gps: np.ndarray,) -> None:
+        """
+        Load only times not already cached.
+        """
+
+        # Quantize requested times
+        q_times = self._quantize(sp_gps)
+
+        # Identify which quantized times are missing
+        missing = [[i,t] for i, t in zip(q_times,sp_et) if i not in self._cache]
+
+        if not missing:
+            return
+
+        missing_qt, missing_et = zip(*missing)
+
+        # convert the missing qauntized time back 
+        # to normal et time
+        #missing_et = np.array(missing, dtype=float)
+        #if self.tolerance:
+        #    missing_et = np.array(missing, dtype=float)*self.tolerance
+
+        # Call provider once for all missing times
+        _, r_new = self._provider(self.bodies, missing_et)
+
+        # Store per-time slice in dictionary
+        for i, t in enumerate(missing_qt):
+            # r_new shape = (Nb, Nt_missing, 3)
+            self._cache[t] = r_new[:, i, :]
