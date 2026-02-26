@@ -62,12 +62,8 @@ docs = [
     "mkdocstrings[python]"
 ]
 
-#[tool.setuptools]
-#packages = ["contigo"]
-
-[tool.setuptools.packages.find]
-where = ["."]  # list of folders that contain the packages (["."] by default)
-include = ["contigo", "contigo/*"]  # package names should match these glob patterns (["*"] by default)
+[tool.setuptools]
+packages = ["contigo"]
 
 [tool.setuptools.package-data]
 contigo = ["py.typed"]
