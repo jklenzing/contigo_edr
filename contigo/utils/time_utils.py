@@ -13,15 +13,19 @@ import spiceypy as spice
 
 import contigo.config as config
 
+from contigo.utils import utils
+
 
 logger = logging.getLogger(__name__)
 
-def spice_et(stime: npt.ArrayLike, tscale: str):
+def spice_et(stime: npt.ArrayLike, tscale: str, out_scale: str):
 
     allowed = {'GPS', 'TAI', 'UTC', 'ET', 'TDB'}
     tscale = tscale.upper()
     if tscale not in allowed:
         raise ValueError(f"tscale must be one of {allowed}")
+    if out_scale not in allowed:
+        raise ValueError(f"out_scale must be one of {allowed}")
 
     # make sure the leap second kernel is loaded
     # if it isn't check for it or download it and load it
@@ -29,13 +33,18 @@ def spice_et(stime: npt.ArrayLike, tscale: str):
 
     if tscale == 'UTC':
         t_str = pd.to_datetime(np.array(stime)).strftime('%d %b %Y %H:%M:%S.%f')
-        et = np.array([spice.utc2et(sp_in) for sp_in in t_str]) 
+        et_t = np.array([spice.utc2et(sp_in) for sp_in in t_str]) 
+        if out_scale not in {'ET','TBD'}:
+            out_t = np.array([spice.unitim(sp_in,tscale,out_scale) for sp_in in et_t]) 
+        else:
+            out_t = et_t
+
     else:
         j2000 = pd.Timestamp('2000-01-01 12:00:00')
         spj2000 = ((stime - j2000).total_seconds()).to_list()
-        et = np.array([spice.unitim(sp_in,tscale,'ET') for sp_in in spj2000])
+        out_t = np.array([spice.unitim(sp_in,tscale,out_scale) for sp_in in spj2000])
 
-    return et
+    return out_t
 
 def check_lpsk( ):
     # get the leapsecond kernel and make sure it's
@@ -56,5 +65,5 @@ def check_lpsk( ):
                                       posixpath.join(base_pth,leaps_d,leaps_f))
 
         logger.info('Downloading kernel - %s', lp_kernel)
-        dl_file(leaps_url, lp_kernel)
+        utils.dl_file(leaps_url, lp_kernel)
         spice.furnsh(lp_kernel)
