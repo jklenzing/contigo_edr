@@ -7,8 +7,10 @@ import urllib.parse
 import logging
 
 from os import path
+from operator import itemgetter
 from datetime import datetime, timezone
 from dateutil import tz
+
 
 import numpy as np
 import numpy.typing as npt
@@ -189,19 +191,25 @@ class SolarSystemEnvironment:
         # Ensure all times are loaded
         self._load_times(et)
 
+        #-----------
+        # old method
+        #-----------
         # Build output array directly from dictionary
-        nb = len(self.bodies)
-        nt = len(et)
-        r_out = np.empty((nb, nt, 3), dtype=float)
+        #nb = len(self.bodies)
+        #nt = len(et)
+        #r_out = np.empty((nb, nt, 3), dtype=float)
 
-        for i, t in enumerate(et):
-            key = self._quantize(t)
-            r_out[:, i, :] = self._cache[key]
+        #for i, t in enumerate(et):
+        #    key = self._quantize(t)
+        #    r_out[:, i, :] = self._cache[key]
 
-        # the above can be made faster with
-        # this needs to be tested
-        #key = self._quantize(et)
-        #r_out = np.array(itemgetter(*key)(self._cache))
+        #-----------
+        # new method
+        # ~10x faster
+        #-----------
+        key = self._quantize(et)
+        r_out = np.array(itemgetter(*key)(self._cache))
+        r_out = np.swapaxes(r_out,0,1)
 
         return et, r_out
 
