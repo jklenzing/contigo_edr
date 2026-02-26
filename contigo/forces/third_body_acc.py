@@ -20,10 +20,11 @@ import contigo.config as config
 
 from contigo.solar_system_ephem import SPICEEphem
 from contigo.forces.base import ForceModel
+from contigo.solar_system_ephem import SolarSystemEnvironment
 
 from .tba_utils import tba_pairwise_numba
-from ..constants import GMc
-from ..constellation import Constellation
+from contigo.constants import GMc
+from contigo.constellation import Constellation
 
 logger = logging.getLogger(__name__)
 
@@ -143,8 +144,8 @@ class ThirdBodyAcc:
         # calculate the seconds past j2000 to convert
         # to SPICE ET Ephemeris time (in the SPICE system,
         # this is equivalent to TDB time)
-        if self.stime.dt.tz is not None and self.stime.dt.tz != timezone.utc:
-            print(str(self.stime.dt.tz))
+        if self.stime.tzinfo is not None and self.stime.tzinfo != timezone.utc:
+            print(str(self.stime.tzinfo))
             raise ValueError('stime should be time zone naive or UTC')
         
 
@@ -156,7 +157,7 @@ class ThirdBodyAcc:
             et = np.array([spice.utc2et(sp_in) for sp_in in t_str]) 
         else:
             j2000 = pd.Timestamp('2000-01-01 12:00:00')
-            spj2000 = ((self.stime - j2000).dt.total_seconds()).to_list()
+            spj2000 = ((self.stime - j2000).total_seconds()).to_list()
             et = np.array([spice.unitim(sp_in,self.scale,'ET') for sp_in in spj2000])
 
         et = np.array(et)
@@ -264,6 +265,39 @@ class ThirdBody(ForceModel):
 
             tba.calc_tba()
             acc_dict[sc_id] = tba.get_tba()
+
+        return acc_dict
+
+    def potential(self, 
+                  constellation: Constellation
+                  ) -> dict[str, npt.NDArray[np.float64]]:
+        raise NotImplementedError("Not implemented for ThirdBodyAcc.")
+    
+class ThirdBodyEnv(ForceModel):
+    """
+    Third-body gravity force operating on invdividual satellites in a Constellation
+    object.
+    """
+
+    name: str = "ThirdBodyAcceleration"
+
+    def __init__(self, env: SolarSystemEnvironment):
+        
+        self.env = env
+
+    def acceleration(self, 
+                     constellation: Constellation
+                     ) -> dict[str, npt.NDArray[np.float64]]: 
+
+        acc_dict = {}
+
+        for sc_id, sc in constellation.spacecraft.items():
+
+            _, _, r_pos = self.env.get_ephem(sc.sspice_et, sc.sspice_gps)
+
+            tba = tba_pairwise_numba(sc.state_ecef[:, 0:3], r_pos, self.env.GM) 
+
+            acc_dict[sc_id] = tba
 
         return acc_dict
 
