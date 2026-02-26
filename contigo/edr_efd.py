@@ -86,8 +86,8 @@ class EDRDensity:
 
             # compute the acceleration integrals
             # x-axis for integrating
-            acc_int = np.zeros(N) 
-            x_ax = (pd.DatetimeIndex(sc.time).to_julian_date()*86400.).to_numpy()
+            acc_int = np.zeros(N)
+            x_ax = sc.sspice_gps
             x_ax = x_ax-x_ax.min()
             for m_id, m_acc in acc_con.items():
                 # if the force model returns multiple accelerations
