@@ -32,13 +32,15 @@ def spice_time(stime: npt.ArrayLike, tscale: str, out_scale: str):
     check_lpsk()
 
     if tscale == 'UTC':
-        t_str = pd.to_datetime(np.array(stime)).strftime('%d %b %Y %H:%M:%S.%f')
-        et_t = np.array([spice.utc2et(sp_in) for sp_in in t_str]) 
+        #t_str = pd.to_datetime(np.array(stime)).strftime('%d %b %Y %H:%M:%S.%f')
+        #et_t = np.array([spice.utc2et(sp_in) for sp_in in t_str])
+        et_t = spice.datetime2et(stime) 
         if out_scale not in {'ET','TBD'}:
             out_t = np.array([spice.unitim(sp_in,'ET',out_scale) for sp_in in et_t]) 
         else:
             out_t = et_t
-
+    elif out_scale == 'UTC':
+        raise ValueError('Converting to UTC not yet implmented')
     else:
         j2000 = pd.Timestamp('2000-01-01 12:00:00')
         spj2000 = ((stime - j2000).total_seconds()).to_list()
