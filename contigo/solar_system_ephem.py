@@ -20,6 +20,8 @@ import spiceypy as spice
 import contigo.utils.utils as utils
 import contigo.config as config
 
+from contigo.constants import GMc
+
 logger = logging.getLogger(__name__)
 
 class SPICEEphem:
@@ -160,8 +162,8 @@ class SolarSystemEnvironment:
     def __init__(
         self,
         bodies: npt.NDArray[np.str_],
-        sp_et: npt.NDArray[np.float64],
-        sp_gps: npt.NDArray[np.float64],
+        sp_et: npt.NDArray[np.float64] | None,
+        sp_gps: npt.NDArray[np.float64] | None,
         tolerance: float | None,
         provider: SPICEEphem,
     ) -> None:
@@ -178,9 +180,14 @@ class SolarSystemEnvironment:
         # value -> (Nb, 3) position array
         self._cache: dict[float, np.ndarray] = {}
 
-        sp_et = np.asarray(sp_et, dtype=float)
-        sp_gps = np.asarray(sp_gps,dtype=float)
-        self._load_times(sp_et,sp_gps)
+        if not isinstance(sp_et, type(None)) and not isinstance(sp_gps, type(None)):
+            sp_et = np.asarray(sp_et, dtype=float)
+            sp_gps = np.asarray(sp_gps,dtype=float)
+            self._load_times(sp_et,sp_gps)
+
+        eph = provider.ephemeris[0:5]
+
+        self.GM = np.array([GMc[eph][bd] for bd in self.bodies],dtype=float)
 
     # ----------------------------------------------------------
     # Public API
