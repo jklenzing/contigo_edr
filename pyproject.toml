@@ -64,7 +64,10 @@ docs = [
 
 [tool.setuptools]
 packages = ["contigo"]
-py-modules = ["__init__"]
+
+[tool.setuptools.packages.find]
+where = ["."]  # list of folders that contain the packages (["."] by default)
+include = ["contigo"]  # package names should match these glob patterns (["*"] by default)
 
 [tool.setuptools.package-data]
 contigo = ["py.typed"]
