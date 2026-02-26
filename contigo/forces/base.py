@@ -7,7 +7,8 @@ from typing import Protocol, runtime_checkable
 import numpy as np
 import numpy.typing as npt
 
-from ..constellation import Constellation
+from contigo.constellation import Constellation
+from contigo.solar_system_ephem import SolarSystemEnvironment
 
 @runtime_checkable
 class ForceModel(Protocol):
@@ -22,7 +23,8 @@ class ForceModel(Protocol):
     is_conservative: bool
 
     def acceleration(self, 
-                     constellation: Constellation
+                     constellation: Constellation,
+                     solarsys_env: SolarSystemEnvironment
                      ) -> dict[str, npt.NDArray[np.float64]]:
         ...
 
