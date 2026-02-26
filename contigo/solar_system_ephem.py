@@ -161,12 +161,15 @@ class SolarSystemEnvironment:
         self,
         bodies: npt.NDArray[np.str_],
         et: npt.NDArray[np.float64],
-        tolerance: float,
+        tolerance: float | None,
         provider: SPICEEphem,
     ) -> None:
 
         self.bodies = np.array([b.upper() for b in bodies])
-        self.tolerance = float(tolerance)
+        if tolerance is None:
+            self.tolerance = None
+        else:
+            self.tolerance = float(tolerance)
         self._provider = provider
 
         # Internal dictionary cache
@@ -217,12 +220,14 @@ class SolarSystemEnvironment:
     # Internal
     # ----------------------------------------------------------
 
-    def _quantize(self, t: npt.NDArray[np.float64]) -> npt.NDArray[np.int_]:
+    def _quantize(self, t: npt.NDArray[np.float64]) -> npt.NDArray[np.int_ | np.float64]:
         """Quantize time using tolerance and return integer bin."""
         if self.tolerance == 0.0:
             # exact integer seconds binning
-            return np.round(t, decimals=1).astype(int)
-        return np.round(t / self.tolerance, decimals=1).astype(int)
+            return np.round(t).astype(int)
+        elif self.tolerance is None:
+            return t
+        return np.round(t / self.tolerance).astype(int)
 
     def _load_times(self, et: np.ndarray) -> None:
         """
@@ -233,15 +238,19 @@ class SolarSystemEnvironment:
         q_times = self._quantize(et)
 
         # Identify which quantized times are missing
-        missing = [t for t in q_times if t not in self._cache]
+        missing = [i for i in q_times if i not in self._cache]
 
         if not missing:
             return
 
-        missing = np.array(missing, dtype=float)
+        # convert the missing qauntized time back 
+        # to normal et time
+        missing_et = np.array(missing, dtype=float)
+        if self.tolerance:
+            missing_et = np.array(missing, dtype=float)*self.tolerance
 
         # Call provider once for all missing times
-        _, r_new = self._provider(self.bodies, missing)
+        _, r_new = self._provider(self.bodies, missing_et)
 
         # Store per-time slice in dictionary
         for i, t in enumerate(missing):
