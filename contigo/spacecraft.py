@@ -14,6 +14,7 @@ import numpy.typing as npt
 import pandas as pd
 
 from contigo.utils import time_utils
+from contigo.utils import utils
 
 ##TODO Future proof units
 
