@@ -336,8 +336,8 @@ class Spacecraft:
         
     def _normalize_time(self):
 
-        self.sspice_et = time_utils.spice_et(self.stime,self.tscale, 'ET')
-        self.sspice_gps = time_utils.spice_et(self.stime,self.tscale, 'GPS')
+        self.sspice_et = time_utils.spice_time(self.stime,self.tscale, 'ET')
+        self.sspice_gps = time_utils.spice_time(self.stime,self.tscale, 'GPS')
         
     # ------------------------------------------------------------------
     def _expand_files(self,

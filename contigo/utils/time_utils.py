@@ -18,7 +18,7 @@ from contigo.utils import utils
 
 logger = logging.getLogger(__name__)
 
-def spice_et(stime: npt.ArrayLike, tscale: str, out_scale: str):
+def spice_time(stime: npt.ArrayLike, tscale: str, out_scale: str):
 
     allowed = {'GPS', 'TAI', 'UTC', 'ET', 'TDB'}
     tscale = tscale.upper()
