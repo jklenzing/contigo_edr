@@ -194,7 +194,7 @@ class ThirdBodyAcc:
         return self.bd_ecef
 
 
-class ThirdBody(ForceModel):
+class ThirdBody():
     """
     Third-body gravity force operating on invdividual satellites in a Constellation
     object.
@@ -231,7 +231,7 @@ class ThirdBody(ForceModel):
 
     def acceleration(self, 
                      constellation: Constellation
-                     ) -> dict[str, npt.NDArray[np.float64]]: 
+                     ) -> dict[str, npt.NDArray[np.float64]]:
         """Derive third body accellerations.
 
         Use ThirdBodyAcc to derive accelerations for satellites in a Constellation 
@@ -281,22 +281,21 @@ class ThirdBodyEnv(ForceModel):
 
     name: str = "ThirdBodyAcceleration"
 
-    def __init__(self, env: SolarSystemEnvironment):
-        
-        self.env = env
+    def __init__(self):
+        pass
 
     def acceleration(self, 
-                     constellation: Constellation
+                     constellation: Constellation, 
+                     solarsys_env: SolarSystemEnvironment
                      ) -> dict[str, npt.NDArray[np.float64]]: 
 
         acc_dict = {}
 
         for sc_id, sc in constellation.spacecraft.items():
 
-            _, _, r_pos = self.env.get_ephem(sc.sspice_et, sc.sspice_gps)
+            _, _, r_pos = solarsys_env.get_ephem(sc.sspice_et, sc.sspice_gps)
 
-            tba = tba_pairwise_numba(sc.state_ecef[:, 0:3], r_pos, self.env.GM) 
-
+            tba = tba_pairwise_numba(sc.state_ecef[:, 0:3], r_pos, solarsys_env.GM)
             acc_dict[sc_id] = tba
 
         return acc_dict
