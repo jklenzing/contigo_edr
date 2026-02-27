@@ -100,6 +100,7 @@ class Spacecraft:
     stime: pd.DatetimeIndex = field(init=False)              # (N,)
     sspice_et: npt.NDArray[np.float64] = field(init=False)   # (N,)
     sspice_gps: npt.NDArray[np.float64] = field(init=False)  # (N,)
+    sc_utc: npt.NDArray = field(init=False)  # (N,)
     tscale: str = field(init=False)                          # validated time scale
     sc_id: npt.NDArray = field(init=False)                   # (N,)
     unique_ids: npt.NDArray = field(init=False)
@@ -418,18 +419,21 @@ class Spacecraft:
         spacecraft_dict = {}
 
         for uid in self.unique_ids:
-            mask = self.sc_id == uid
+            
+            idx = np.where(self.sc_id == uid)[0]
+            order = np.argsort(self.sspice_gps[idx])
+            idx = idx[order]
 
             sc = Spacecraft(
-                state=self.state_ecef[mask],
-                time=self.stime[mask],
-                sc_id_input=np.full(mask.sum(), uid),
+                state=self.state_ecef[idx],
+                time=self.stime[idx],
+                sc_id_input=np.full(idx.shape[0], uid),
                 tscale_input=self.tscale,
-                cd=self.cd_arr[mask],
-                drag_area=self.drag_area_arr[mask],
-                sc_mass=self.sc_mass_arr[mask],
-                cr=self.cr_arr[mask],
-                srp_area=self.srp_area_arr[mask],
+                cd=self.cd_arr[idx],
+                drag_area=self.drag_area_arr[idx],
+                sc_mass=self.sc_mass_arr[idx],
+                cr=self.cr_arr[idx],
+                srp_area=self.srp_area_arr[idx],
             )
 
             spacecraft_dict[uid] = sc
@@ -447,6 +451,7 @@ class Spacecraft:
         stime: pd.DatetimeIndex
         sspice_et: npt.NDArray[np.float64]
         sspice_gps: npt.NDArray[np.float64]
+        sc_utc: npt.NDArray[np.float64]
         sc_id: npt.NDArray
         unique_ids: npt.NDArray
         cd: npt.NDArray
@@ -481,6 +486,7 @@ class Spacecraft:
                 stime=self.stime,
                 sspice_et=self.sspice_et,
                 sspice_gps=self.sspice_gps,
+                sc_utc=self.sc_utc,
                 sc_id=self.sc_id,
                 unique_ids=self.unique_ids,
                 cd=self.cd_arr,
