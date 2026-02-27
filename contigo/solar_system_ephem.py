@@ -20,7 +20,7 @@ import spiceypy as spice
 import contigo.utils.utils as utils
 import contigo.config as config
 
-from contigo.constants import GMc
+from contigo.utils.constants import GMc
 
 logger = logging.getLogger(__name__)
 

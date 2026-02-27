@@ -23,7 +23,7 @@ from contigo.forces.base import ForceModel
 from contigo.solar_system_ephem import SolarSystemEnvironment
 
 from .tba_utils import tba_pairwise_numba
-from contigo.constants import GMc
+from contigo.utils.constants import GMc
 from contigo.constellation import Constellation
 
 logger = logging.getLogger(__name__)

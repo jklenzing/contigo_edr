@@ -7,7 +7,7 @@ import numpy as np
 
 from scipy.integrate import cumulative_simpson
 
-import contigo.constants as constants
+import contigo.utils.constants as constants
 
 from contigo.forces.base import ForceModel
 from contigo.constellation import Constellation
