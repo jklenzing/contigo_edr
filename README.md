@@ -43,7 +43,7 @@ end
 %% ================= PHYSICS LAYER =================
 subgraph PHYSICS_LAYER["Physics Layer"]
     ForceModel["ForceModel"]
-    ThirdBody["ThirdBody"]
+    ThirdBody["ThirdBodyEnv"]
     SRPAcc["SRPAcc"]
     EarthPotential["EarthPotential"]
 
