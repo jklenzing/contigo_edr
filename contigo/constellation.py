@@ -26,6 +26,7 @@ class Constellation:
         # Get constellation times
         self.sspice_et = multi_sc.sspice_et
         self.sspice_gps = multi_sc.sspice_gps
+        self.sc_utc = multi_sc.sc_utc
 
 
     # --------------------------------------------------------------

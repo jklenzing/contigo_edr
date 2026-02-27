@@ -13,6 +13,8 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
+import spiceypy as spice
+
 from contigo.utils import time_utils
 from contigo.utils import utils
 
@@ -339,7 +341,7 @@ class Spacecraft:
 
         self.sspice_et = time_utils.spice_time(self.stime,self.tscale, 'ET')
         self.sspice_gps = time_utils.spice_time(self.stime,self.tscale, 'GPS')
-        
+        self.sc_utc = spice.et2datetime(self.sspice_et)
     # ------------------------------------------------------------------
     def _expand_files(self,
                       state_file: str | Path | Iterable[str | Path],) -> list[Path]:
