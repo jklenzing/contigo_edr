@@ -432,7 +432,9 @@ class Spacecraft:
             # Find the indexes that match 
             # the spacecraft it uid
             # check if they're sorted
-            # if not sort
+            # if not sort 
+            # sorting is done here as it reduces
+            # the amount of sorting we need to do
             idx = np.where(self.sc_id == uid)[0]
             if not self._is_sorted_asc(self.sspice_gps[idx]):
                 order = np.argsort(self.sspice_gps[idx])
