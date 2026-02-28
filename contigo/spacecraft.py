@@ -343,7 +343,14 @@ class Spacecraft:
         self.sspice_et = time_utils.spice_time(self.stime,self.tscale, 'ET')
         self.sspice_gps = time_utils.spice_time(self.stime,self.tscale, 'GPS')
         self.sc_utc = spice.et2datetime(self.sspice_et)
-    # ------------------------------------------------------------------
+
+    def _is_sorted_asc(self, arr):
+        """Check if a numpy array is sorted in ascending order."""
+        if len(arr) < 2:
+            return True
+        # Check if all differences between consecutive elements are >= 0
+        return (np.diff(arr) >= 0).all()
+
     def _expand_files(self,
                       state_file: str | Path | Iterable[str | Path],) -> list[Path]:
         """Expand wildcards and iterables into a sorted list of files.
@@ -411,6 +418,8 @@ class Spacecraft:
         """Split a multi-ID Spacecraft container into individual
         Spacecraft objects keyed by spacecraft ID.
 
+        Sort time to make sure it's monotonic.
+
         Returns
         -------
         dict
@@ -420,9 +429,14 @@ class Spacecraft:
 
         for uid in self.unique_ids:
             
+            # Find the indexes that match 
+            # the spacecraft it uid
+            # check if they're sorted
+            # if not sort
             idx = np.where(self.sc_id == uid)[0]
-            order = np.argsort(self.sspice_gps[idx])
-            idx = idx[order]
+            if not self._is_sorted_asc(self.sspice_gps[idx]):
+                order = np.argsort(self.sspice_gps[idx])
+                idx = idx[order]
 
             sc = Spacecraft(
                 state=self.state_ecef[idx],
