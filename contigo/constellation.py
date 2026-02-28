@@ -2,7 +2,7 @@
 
 added: 18/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
 """
-
+from typing import Sequence
 import numpy as np
 
 from .spacecraft import Spacecraft
@@ -20,9 +20,55 @@ class Constellation:
     spacecraft is a strict single-ID Spacecraft object.
     """
 
-    def __init__(self, **spacecraft_kwargs):
-        # Load once using the Spacecraft loader
-        multi_sc = Spacecraft(**spacecraft_kwargs)
+    def __init__(self,
+                 spacecraft: Spacecraft | Sequence[Spacecraft] | None = None,
+                 **spacecraft_kwargs) -> None:
+        
+        # -----------------------------------------------------------
+        # Case 1: List of Spacecraft → convert via iterative addition
+        # -----------------------------------------------------------
+        if isinstance(spacecraft, (list, tuple)):
+
+            if not spacecraft:
+                raise ValueError("Spacecraft list cannot be empty.")
+
+            if not all(isinstance(sc, Spacecraft) for sc in spacecraft):
+                raise TypeError("All elements must be Spacecraft objects.")
+
+            # Start from first spacecraft
+            base = Constellation(spacecraft=spacecraft[0])
+
+            # Iteratively add remaining
+            for sc in spacecraft[1:]:
+                base += Constellation(spacecraft=sc)
+
+            # Copy merged result into self
+            self.spacecraft = base.spacecraft
+            self.sspice_et = base.sspice_et
+            self.sspice_gps = base.sspice_gps
+            self.sc_utc = base.sc_utc
+
+            return
+
+        # ----------------------------------------------------------
+        # Case 2: Single Spacecraft object
+        # ----------------------------------------------------------
+        if spacecraft is not None:
+            if not isinstance(spacecraft, Spacecraft):
+                raise TypeError("spacecraft must be a Spacecraft object")
+
+            multi_sc = spacecraft
+        # ----------------------------------------------------------
+        # Case 3: Construct from loader kwargs
+        # ----------------------------------------------------------
+        elif spacecraft is None:
+            # Load once using the Spacecraft loader
+            multi_sc = Spacecraft(**spacecraft_kwargs)
+        else:
+            raise TypeError(
+                "spacecraft must be Spacecraft, list[Spacecraft], or None"
+            )
+
 
         # Split into individual spacecraft
         self.spacecraft: dict = multi_sc.split_by_id()
