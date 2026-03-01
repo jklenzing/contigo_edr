@@ -13,7 +13,7 @@ import spiceypy as spice
 
 import contigo.config as config
 
-from contigo.utils import utils
+from contigo.contig_utils import utils
 
 
 logger = logging.getLogger(__name__)
