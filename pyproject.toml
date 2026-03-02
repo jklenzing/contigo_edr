@@ -67,6 +67,7 @@ packages = ["contigo"]
 
 [tool.setuptools.package-data]
 contigo = ["py.typed"]
+"contigo.orekit_utils" = ["java/*.jar"]
 
 [tool.black]
 line-length = 88
