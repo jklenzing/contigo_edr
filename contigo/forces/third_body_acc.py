@@ -18,7 +18,7 @@ import spiceypy as spice
 import contigo.contig_utils.utils as utils
 import contigo.config as config
 
-from contigo.solar_system_ephem import SPICEEphem
+from contigo.ephemeris.spice_ephem import SPICEEphem
 from contigo.forces.base import ForceModel
 from contigo.solar_system_ephem import SolarSystemEnvironment
 
