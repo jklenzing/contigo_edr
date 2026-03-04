@@ -34,7 +34,7 @@ class OrekitEphem:
 
         r_body = EphemerisBatchHelper.getBodyECEF(ref_date, 
                                                   offsets, 
-                                                  ArrayList(['Sun', 'Moon']))
+                                                  ArrayList(body))
         
         # convert to km and return
         return np.array(r_body, dtype=np.float64)/1000.0
