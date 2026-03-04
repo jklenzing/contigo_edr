@@ -28,8 +28,6 @@ from contigo.constellation import Constellation
 
 logger = logging.getLogger(__name__)
 
-#TODO remove ephemeris from here and into
-
 class ThirdBodyAcc:
     """Deriving Third Body Acceleration using JPL SPICE
     """
@@ -293,7 +291,9 @@ class ThirdBodyEnv(ForceModel):
 
         for sc_id, sc in constellation.spacecraft.items():
 
-            _, _, r_pos = solarsys_env.get_ephem(sc.sspice_et, sc.sspice_gps)
+            _,_, _, r_pos = solarsys_env.get_ephem(ephem_time=sc.sspice_et,
+                                                 gps_time=sc.sspice_gps,
+                                                 utc_time=sc.sc_utc)
 
             tba = tba_pairwise_numba(sc.state_ecef[:, 0:3], r_pos, solarsys_env.GM)
             acc_dict[sc_id] = tba
