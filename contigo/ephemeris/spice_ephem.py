@@ -21,7 +21,6 @@ from contigo.contig_utils.constants import GMc
 
 logger = logging.getLogger(__name__)
 
-
 class SPICEEphem:
     """
     SPICE-backed ephemeris provider with unique-time optimization.
@@ -38,12 +37,16 @@ class SPICEEphem:
 
         self.load_kernels()
 
-    def __call__(self, body: npt.NDArray[np.str_], et: np.ndarray):
+    def __call__(self, body: npt.NDArray[np.str_] | list[str],
+                 utc_time:  None = None,
+                 gps_time: None = None,
+                 ephem_time: np.ndarray | None = None,
+                 ):
         
         # find the unique values of et and return their indecies
         # return the inverse indices of that allow the reconstruction
         # of the orignal array
-        unique_et, inv = np.unique(et, return_inverse=True)
+        unique_et, inv = np.unique(ephem_time, return_inverse=True)
 
         r_unique = np.array(
             [
@@ -52,7 +55,7 @@ class SPICEEphem:
             ])
 
         r_body = r_unique[:,inv,:]
-        return et, r_body
+        return r_body
     
     def load_kernels(self):
         """Download and load the SPICE kernels for deriving body locations
