@@ -1,4 +1,7 @@
+"""Ephemeris provider using Orekit.
 
+added: 04/03/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
+"""
 import numpy as np
 import numpy.typing as npt
 

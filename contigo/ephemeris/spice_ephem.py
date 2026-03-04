@@ -1,4 +1,7 @@
+"""Ephemeris provider using SPICE and SPICEYPY.
 
+added: 04/03/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
+"""
 import posixpath
 import urllib.parse
 import logging
