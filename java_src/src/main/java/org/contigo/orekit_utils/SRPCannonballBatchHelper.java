@@ -62,9 +62,9 @@ public class SRPCannonballBatchHelper {
             AbsoluteDate referenceDate,
             double[] offsetSeconds,
             double[][] states,
-            double mass,
-            double area,
-            double cr) {
+            double[] mass,
+            double[] area,
+            double[] cr) {
 
         int n = offsetSeconds.length;
 
@@ -73,13 +73,6 @@ public class SRPCannonballBatchHelper {
         }
 
         double[][] output = new double[n][6];
-
-        // Surface and SRP model can be reused across loop
-        IsotropicRadiationSingleCoefficient surface =
-                new IsotropicRadiationSingleCoefficient(area, cr);
-
-        SolarRadiationPressure srp =
-                new SolarRadiationPressure(SUN, EARTH, surface);
 
         for (int i = 0; i < n; i++) {
 
@@ -102,7 +95,12 @@ public class SRPCannonballBatchHelper {
                     date,
                     Constants.WGS84_EARTH_MU);
 
-            SpacecraftState scState = new SpacecraftState(orbit).withMass(mass);
+            SpacecraftState scState = new SpacecraftState(orbit).withMass(mass[i]);
+
+
+            IsotropicRadiationSingleCoefficient surface = new IsotropicRadiationSingleCoefficient(area[i], cr[i]);
+            SolarRadiationPressure srp =
+                new SolarRadiationPressure(SUN, EARTH, surface);
 
             Vector3D accelEci = srp.acceleration(scState, srp.getParameters());
 
