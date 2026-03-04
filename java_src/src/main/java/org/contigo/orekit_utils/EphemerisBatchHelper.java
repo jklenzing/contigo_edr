@@ -1,3 +1,19 @@
+/**
+ * This is helper class to compute ECEF positions of solar system 
+ * bodies in batch, given a reference date and time offsets.
+ * 
+ * The class is meant to be used in conjunction with Orekit ephemeris provider
+ * to efficiently compute positions of multiple bodies at multiple time steps, 
+ * and subseqeuntly third body accelerations.
+ * 
+ * The main optimization is limiting calls to the JVM from Python. 
+ * 
+ * @author Kyle Murphy, kylemurphy.spacephys@gmail.com
+ * @version 1.0
+ * @since 2026-03-04
+ */
+
+
 package org.contigo.orekit_utils;
 
 import org.orekit.frames.*;

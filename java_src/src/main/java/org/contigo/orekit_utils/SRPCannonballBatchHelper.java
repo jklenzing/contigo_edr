@@ -1,3 +1,17 @@
+/**
+ * This is helper class to batch compute the SRP accelerations of a spacecraft.
+ * 
+ * The class is meant to be used in conjunction with a ForceModel and the 
+ * EDRDensity class.
+ * 
+ * The main optimization is limiting calls to the JVM from Python and deriving SRP
+ * accelerations for all times for a single satellite. 
+ * 
+ * @author Kyle Murphy, kylemurphy.spacephys@gmail.com
+ * @version 1.0
+ * @since 2026-03-04
+ */
+
 package org.contigo.orekit_utils;
 
 import org.orekit.frames.Frame;
