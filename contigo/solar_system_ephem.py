@@ -2,23 +2,10 @@
 
 added: 25/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
 """
-import posixpath
-import urllib.parse
 import logging
-
-from os import path
 from operator import itemgetter
-from datetime import datetime, timezone
-from dateutil import tz
-
-
 import numpy as np
 import numpy.typing as npt
-
-import spiceypy as spice
-
-import contigo.contig_utils.utils as utils
-import contigo.config as config
 
 from contigo.contig_utils.constants import GMc
 
@@ -40,10 +27,11 @@ class SolarSystemEnvironment:
     def __init__(
         self,
         bodies: npt.NDArray[np.str_],
-        sp_et: npt.NDArray[np.float64] | None,
-        sp_gps: npt.NDArray[np.float64] | None,
+        ephem_time: npt.NDArray[np.float64] | None,
+        gps_time: npt.NDArray[np.float64] | None,
+        utc_time: npt.NDArray[np.datetime64] | None,
         tolerance: float | None,
-        provider: SPICEEphem,
+        provider
     ) -> None:
 
         self.bodies = np.array([b.upper() for b in bodies])
@@ -58,10 +46,11 @@ class SolarSystemEnvironment:
         # value -> (Nb, 3) position array
         self._cache: dict[float, np.ndarray] = {}
 
-        if not isinstance(sp_et, type(None)) and not isinstance(sp_gps, type(None)):
-            sp_et = np.asarray(sp_et, dtype=float)
-            sp_gps = np.asarray(sp_gps,dtype=float)
-            self._load_times(sp_et,sp_gps)
+        if self._chectimes(ephem_time, gps_time, utc_time):
+            ephem_time = np.asarray(ephem_time, dtype=float)
+            gps_time = np.asarray(gps_time,dtype=float)
+            utc_time = np.asarray(utc_time)
+            self._load_times(ephem_time,gps_time,utc_time)
 
         eph = provider.ephemeris[0:5]
 
@@ -73,37 +62,23 @@ class SolarSystemEnvironment:
 
     def get_ephem(
         self,
-        sp_et: npt.NDArray[np.float64],
-        sp_gps: npt.NDArray[np.float64],
+        ephem_time: npt.NDArray[np.float64],
+        gps_time: npt.NDArray[np.float64],
+        utc_time: npt.NDArray[np.datetime64],
     ) -> tuple[np.ndarray, np.ndarray]:
 
-        sp_et = np.asarray(sp_et, dtype=float)
-        sp_gps = np.asarray(sp_gps,dtype=float)
+        sp_et = np.asarray(ephem_time, dtype=float)
+        sp_gps = np.asarray(gps_time,dtype=float)
+        sp_utc = np.asarray(utc_time)
 
         # Ensure all times are loaded
-        self._load_times(sp_et, sp_gps)
+        self._load_times(sp_et, sp_gps, sp_utc)
 
-        #-----------
-        # old method
-        #-----------
-        # Build output array directly from dictionary
-        #nb = len(self.bodies)
-        #nt = len(et)
-        #r_out = np.empty((nb, nt, 3), dtype=float)
-
-        #for i, t in enumerate(et):
-        #    key = self._quantize(t)
-        #    r_out[:, i, :] = self._cache[key]
-
-        #-----------
-        # new method
-        # ~10x faster
-        #-----------
         key = self._quantize(sp_gps)
         r_out = np.array(itemgetter(*key)(self._cache))
         r_out = np.swapaxes(r_out,0,1)
 
-        return sp_et, sp_gps, r_out
+        return sp_et, sp_gps, sp_utc, r_out
 
     # ----------------------------------------------------------
     # Internal
@@ -119,33 +94,42 @@ class SolarSystemEnvironment:
         return np.round(t / self.tolerance).astype(int)
 
     def _load_times(self, 
-                    sp_et: np.ndarray,
-                    sp_gps: np.ndarray,) -> None:
+                    ephem_time: np.ndarray,
+                    gps_time: np.ndarray,
+                    utc_time: np.ndarray) -> None:
         """
         Load only times not already cached.
         """
 
         # Quantize requested times
-        q_times = self._quantize(sp_gps)
+        q_times = self._quantize(gps_time)
 
         # Identify which quantized times are missing
-        missing = [[i,t] for i, t in zip(q_times,sp_et) if i not in self._cache]
+        missing = [
+                   [i,et,utc,gps]
+                   for i, et, utc, gps in zip(q_times,ephem_time,utc_time,gps_time) 
+                   if i not in self._cache
+                   ]
 
         if not missing:
             return
 
-        missing_qt, missing_et = zip(*missing)
-
-        # convert the missing qauntized time back 
-        # to normal et time
-        #missing_et = np.array(missing, dtype=float)
-        #if self.tolerance:
-        #    missing_et = np.array(missing, dtype=float)*self.tolerance
+        missing_qt, missing_et, missing_utc, missing_gps = list(zip(*missing))
 
         # Call provider once for all missing times
-        _, r_new = self._provider(self.bodies, missing_et)
+        r_new = self._provider(self.bodies,
+                               ephem_time=missing_et,
+                               gps_time=missing_gps,
+                               utc_time=missing_utc)
+
 
         # Store per-time slice in dictionary
         for i, t in enumerate(missing_qt):
             # r_new shape = (Nb, Nt_missing, 3)
             self._cache[t] = r_new[:, i, :]
+
+    def _chectimes(self,ephem_time, gps_time, utc_time):
+        if isinstance(ephem_time, type(None)) and isinstance(gps_time, type(None)) and isinstance(utc_time, type(None)):
+            return False
+        else:
+            return True
