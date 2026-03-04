@@ -45,7 +45,9 @@ class EDRDensity:
         unique_gps, u_id = np.unique(constellation.sspice_gps, return_index=True)
 
         # load ephemeris for all unique times
-        self.solarsys_env._load_times(constellation.sspice_et[u_id], unique_gps)
+        self.solarsys_env._load_times(ephem_time=constellation.sspice_et[u_id], 
+                                      gps_time=unique_gps, 
+                                      utc_time=constellation.sc_utc)
 
     # --------------------------------------------------------------
     def compute(self) -> dict:
