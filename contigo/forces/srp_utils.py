@@ -1,4 +1,4 @@
-"""Derive third body accelerations for an Earth orbiting spacecraft.
+"""Setup GMAT API.
 
 added: 23/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
 """
