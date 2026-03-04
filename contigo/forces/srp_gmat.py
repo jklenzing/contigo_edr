@@ -1,4 +1,5 @@
-"""Derive third body accelerations for an Earth orbiting spacecraft.
+"""Derive SRP accelerations for an Earth orbiting spacecraft using
+the General Mission Analysis Tool (GMAT).
 
 added: 23/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
 """
@@ -169,7 +170,7 @@ class SRPAcc(ForceModel):
     SRP accelerations for invdividual satellites in a Constellation object.
     """
 
-    name: str = "SRPAcceleration"
+    name: str = "SRPGMATCannonball"
 
     def __init__(self, 
                  apistartup: str | None = None, 
