@@ -34,7 +34,7 @@ class SolarSystemEnvironment:
         provider
     ) -> None:
 
-        self.bodies = np.array([b.upper() for b in bodies])
+        self.bodies = [b.upper() for b in bodies]
         if tolerance is None:
             self.tolerance = None
         else:
