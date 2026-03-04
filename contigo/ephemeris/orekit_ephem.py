@@ -17,7 +17,7 @@ class OrekitEphem:
         
         self.ephemeris= ephemeris
 
-    def __call__(self, body: npt.NDArray[np.str_] | list[str],
+    def __call__(self, body: list[str],
                  utc_time: np.ndarray | None = None,
                  gps_time: None = None,
                  ephem_time: None = None,
