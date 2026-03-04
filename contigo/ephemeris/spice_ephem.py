@@ -28,9 +28,9 @@ class SPICEEphem:
 
     def __init__(self, 
                  ephemeris: str='de440s',
-                 frame: str = "ITRF93", 
+                 frame: str = "ITRF93",
                  observer: str = "EARTH"):
-        
+
         self.frame = frame
         self.observer = observer
         self.ephemeris= ephemeris
@@ -42,7 +42,7 @@ class SPICEEphem:
                  gps_time: None = None,
                  ephem_time: np.ndarray | None = None,
                  ):
-        
+
         # find the unique values of et and return their indecies
         # return the inverse indices of that allow the reconstruction
         # of the orignal array
