@@ -15,8 +15,8 @@ import pandas as pd
 
 import spiceypy as spice
 
-from contigo.contig_utils import time_utils
-from contigo.contig_utils import utils
+from contigo.contigo_utils import time_utils
+from contigo.contigo_utils import utils
 
 ##TODO Future proof units
 
