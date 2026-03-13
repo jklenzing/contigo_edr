@@ -7,7 +7,7 @@ from operator import itemgetter
 import numpy as np
 import numpy.typing as npt
 
-from contigo.contig_utils.constants import GMc
+from contigo.contigo_utils.constants import GMc
 
 logger = logging.getLogger(__name__)
 

@@ -15,7 +15,7 @@ import numpy as np
 import numpy.typing as npt
 import spiceypy as spice
 
-import contigo.contig_utils.utils as utils
+import contigo.contigo_utils.utils as utils
 import contigo.config as config
 
 from contigo.ephemeris.spice_ephem import SPICEEphem
@@ -23,7 +23,7 @@ from contigo.forces.base import ForceModel
 from contigo.solar_system_ephem import SolarSystemEnvironment
 
 from .tba_utils import tba_pairwise_numba
-from contigo.contig_utils.constants import GMc
+from contigo.contigo_utils.constants import GMc
 from contigo.constellation import Constellation
 
 logger = logging.getLogger(__name__)

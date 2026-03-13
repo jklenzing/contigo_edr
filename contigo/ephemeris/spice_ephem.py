@@ -17,10 +17,10 @@ import numpy.typing as npt
 
 import spiceypy as spice
 
-import contigo.contig_utils.utils as utils
+import contigo.contigo_utils.utils as utils
 import contigo.config as config
 
-from contigo.contig_utils.constants import GMc
+from contigo.contigo_utils.constants import GMc
 
 logger = logging.getLogger(__name__)
 
