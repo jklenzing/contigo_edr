@@ -82,7 +82,7 @@ class EDRDensity:
             N = sc.N
             
             sc_p = sc.state_ecef[:, 0:3]
-            sc_v = sc.state_ecef[:, 3:6]
+            sc_v = sc.state_ecef[:, 3:]
 
             sc_xy2 = sc_p[:,0]**2 + sc_p[:,1]**2
             sc_v2 = (sc_v*sc_v).sum(axis=1)
@@ -136,10 +136,10 @@ class EDRDensity:
             
             b=sc.cd_arr*(sc.drag_area_arr/1000.**2)/sc.sc_mass_arr
 
-            sc_v = sc.state_ecef[:, 3:6]
+            sc_v = sc.state_ecef[:, 3:]
             sc_v3 = np.linalg.norm(sc_v,axis=1)**3
 
-            x_ax = (pd.DatetimeIndex(sc.time).to_julian_date()*86400.).to_numpy()
+            x_ax = sc.sspice_gps
             x_ax = x_ax-x_ax.min()
 
             y_int = b*sc_v3
