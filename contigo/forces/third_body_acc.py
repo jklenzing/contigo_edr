@@ -300,7 +300,7 @@ class ThirdBodyEnv(ForceModel):
 
         return acc_dict
 
-    def potential(self, 
+    def potential(self,
                   constellation: Constellation
                   ) -> dict[str, npt.NDArray[np.float64]]:
         raise NotImplementedError("Not implemented for ThirdBodyAcc.")
