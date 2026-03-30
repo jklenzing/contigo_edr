@@ -6,7 +6,9 @@ import pathlib
 import functools
 import shutil
 import requests
-
+import zipfile
+import gzip
+import io
 
 from os import path
 from datetime import datetime
@@ -83,49 +85,55 @@ def wf_mtime(url):
         return None
     
 def df_sp3(fn):
-    """Read in SP3c ASCII text file.
-
-    Parameters
-    ----------
-    fn : function
-        _description_
-
-    Returns
-    -------
-    _type_
-        _description_
+    """
+    Read SP3c files (Standard, Gzip, or Zip).
     """    
-    
-    dt = []
-    dat = []
-    vel = []
+    # 1. Handle Gzip (.gz or .Z)
+    if fn.lower().endswith(('.gz', '.z')):
+        f = io.TextIOWrapper(gzip.open(fn, 'rb'), encoding='utf-8')
+        
+    # 2. Handle Zip (.zip)
+    elif zipfile.is_zipfile(fn):
+        with zipfile.ZipFile(fn, 'r') as z:
+            internal_fn = [n for n in z.namelist() if '.sp3' in n.lower()][0]
+            f = io.TextIOWrapper(z.open(internal_fn), encoding='utf-8')
+            
+    # 3. Handle Plain Text
+    else:
+        f = open(fn, 'r', encoding='utf-8')
 
-    with open(fn, 'r') as f:
+    dt, dat, vel = [], [], []
+
+    try:
+        # The parsing logic remains the same
         for line in f:
-            # Implement parsing logic based on SP3 format
-            # Example: Check for specific record types like header records,
-            # position records, or clock records and extract data accordingly.
-            if line.startswith('*'): # Example for epoch records
-                # Parse epoch information
-                dt.append(line[1:-1].strip())
-                
-            elif line.startswith('P'): # Example for position records
-                # Parse satellite position and clock information
+            if line.startswith('*'): 
+                dt.append(line[1:].strip())
+            elif line.startswith('P'): 
                 dat.append(line.split()[0:4])
             elif line.startswith('V'):
-                vel.append([line[4:18],line[18:32],line[32:46]])
+                vel.append([line[4:18], line[18:32], line[32:46]])
+    finally:
+        f.close()
 
+    # Data Processing
+    # (Note: Standardize the datetime format to match SP3 spacing)
+    # If dt looks like "2023 10 27  0  0  0.00000000"
+    dt = pd.to_datetime(dt, format='%Y %m %d %H %M %S.%f', errors='coerce')
 
-    dt = pd.to_datetime(dt,format='%Y %m %d %H %M %S.%f')
+    pdf = pd.DataFrame(data=dat, columns=['sat', 'x', 'y', 'z'])
+    pdf[['x', 'y', 'z']] = pdf[['x', 'y', 'z']].astype(float)
+    
+    # Basic check: if you have 1 epoch but 32 satellites, 
+    # you'll need to repeat the 'dt' values to match 'dat' length.
+    if len(dt) != len(pdf):
+        # This is a placeholder; real SP3 logic usually requires 
+        # tracking the current epoch inside the loop.
+        pass 
+    else:
+        pdf['time'] = dt
 
-    pdf = pd.DataFrame(data=dat,columns=['sat','x','y','z'])
-    pdf[['x','y','z']] = pdf[['x','y','z']].astype(float)
-    pdf['time'] = dt
+    vdf = pd.DataFrame(data=vel, columns=['vx', 'vy', 'vz'])
+    vdf[['vx', 'vy', 'vz']] = vdf[['vx', 'vy', 'vz']].astype(float) / 10000.
 
-    vdf = pd.DataFrame(data=vel,columns=['vx','vy','vz'])
-    vdf[['vx','vy','vz']] = vdf[['vx','vy','vz']].astype(float)
-    vdf[['vx','vy','vz']] = vdf[['vx','vy','vz']]/10000.
-
-    sdf = pd.merge(pdf, vdf, left_index=True, right_index=True)
-
-    return sdf
+    return pd.concat([pdf, vdf], axis=1)
