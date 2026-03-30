@@ -72,11 +72,15 @@ class EDRDensity:
         # constellation
         e_gp_con = self.potential_model.potential(self.constellation)
 
+        self.e_gp = e_gp_con
+
         # derive the accelerations from the force models
         # for the constellation
         acc_con = { }
         for model in self.force_models:
             acc_con[model.name] = model.acceleration(self.constellation, self.solarsys_env)
+
+        self.accelerations = acc_con
 
         for sc_id, sc in spacecraft_dict.items():
             N = sc.N
@@ -93,6 +97,7 @@ class EDRDensity:
             # here we use r^2*cos*2(phi) = x^2+y^2
             # and we subtract the edr at edr time zero
             edr = sc_v2/2. - e_gp - earth_angv2*sc_xy2/2.
+            #edr = sc_v2/2. - earth_angv2*sc_xy2/2.
 
             # compute the acceleration integrals
             # x-axis for integrating
@@ -102,6 +107,7 @@ class EDRDensity:
             for m_id, m_acc in acc_con.items():
                 # if the force model returns multiple accelerations
                 # loop through them all
+                print(m_id)
                 if m_acc[sc_id].shape[0] != N:
                     for i in range(m_acc[sc_id].shape[0]):
                         acc = m_acc[sc_id][i,:,:]
@@ -135,7 +141,7 @@ class EDRDensity:
         for sc_id, sc in spacecraft_dict.items():
             
             b=sc.cd_arr*(sc.drag_area_arr/1000.**2)/sc.sc_mass_arr
-
+            
             sc_v = sc.state_ecef[:, 3:]
             sc_v3 = np.linalg.norm(sc_v,axis=1)**3
 
