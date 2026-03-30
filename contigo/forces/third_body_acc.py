@@ -15,20 +15,18 @@ import numpy as np
 import numpy.typing as npt
 import spiceypy as spice
 
-import contigo.contig_utils.utils as utils
+import contigo.contigo_utils.utils as utils
 import contigo.config as config
 
-from contigo.solar_system_ephem import SPICEEphem
+from contigo.ephemeris.spice_ephem import SPICEEphem
 from contigo.forces.base import ForceModel
 from contigo.solar_system_ephem import SolarSystemEnvironment
 
 from .tba_utils import tba_pairwise_numba
-from contigo.contig_utils.constants import GMc
+from contigo.contigo_utils.constants import GMc
 from contigo.constellation import Constellation
 
 logger = logging.getLogger(__name__)
-
-#TODO remove ephemeris from here and into
 
 class ThirdBodyAcc:
     """Deriving Third Body Acceleration using JPL SPICE
@@ -293,14 +291,16 @@ class ThirdBodyEnv(ForceModel):
 
         for sc_id, sc in constellation.spacecraft.items():
 
-            _, _, r_pos = solarsys_env.get_ephem(sc.sspice_et, sc.sspice_gps)
+            _,_, _, r_pos = solarsys_env.get_ephem(ephem_time=sc.sspice_et,
+                                                 gps_time=sc.sspice_gps,
+                                                 utc_time=sc.sc_utc)
 
             tba = tba_pairwise_numba(sc.state_ecef[:, 0:3], r_pos, solarsys_env.GM)
             acc_dict[sc_id] = tba
 
         return acc_dict
 
-    def potential(self, 
+    def potential(self,
                   constellation: Constellation
                   ) -> dict[str, npt.NDArray[np.float64]]:
         raise NotImplementedError("Not implemented for ThirdBodyAcc.")

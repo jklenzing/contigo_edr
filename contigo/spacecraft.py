@@ -15,8 +15,8 @@ import pandas as pd
 
 import spiceypy as spice
 
-from contigo.contig_utils import time_utils
-from contigo.contig_utils import utils
+from contigo.contigo_utils import time_utils
+from contigo.contigo_utils import utils
 
 ##TODO Future proof units
 
@@ -268,6 +268,9 @@ class Spacecraft:
         # Spacecraft ID handling
         if self.sc_id_col is not None and self.sc_id_col in df_all.columns:
             sc_id_arr = df_all[self.sc_id_col].astype("category").to_numpy()
+        elif self.sc_id_input is not None:
+            sc_id_arr = pd.Series(
+                np.full(len(t), self.sc_id_input, dtype=object)).astype("category").to_numpy()
         else:
             sc_id_arr = pd.Series(
                 np.full(len(t), "NO_ID", dtype=object)).astype("category").to_numpy()

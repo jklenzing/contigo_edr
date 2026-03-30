@@ -7,7 +7,7 @@ import numpy as np
 
 from scipy.integrate import cumulative_simpson
 
-import contigo.contig_utils.constants as constants
+import contigo.contigo_utils.constants as constants
 
 from contigo.forces.base import ForceModel
 from contigo.constellation import Constellation
@@ -45,7 +45,9 @@ class EDRDensity:
         unique_gps, u_id = np.unique(constellation.sspice_gps, return_index=True)
 
         # load ephemeris for all unique times
-        self.solarsys_env._load_times(constellation.sspice_et[u_id], unique_gps)
+        self.solarsys_env._load_times(ephem_time=constellation.sspice_et[u_id], 
+                                      gps_time=unique_gps, 
+                                      utc_time=constellation.sc_utc)
 
     # --------------------------------------------------------------
     def compute(self) -> dict:
@@ -70,17 +72,21 @@ class EDRDensity:
         # constellation
         e_gp_con = self.potential_model.potential(self.constellation)
 
+        self.e_gp = e_gp_con
+
         # derive the accelerations from the force models
         # for the constellation
         acc_con = { }
         for model in self.force_models:
             acc_con[model.name] = model.acceleration(self.constellation, self.solarsys_env)
 
+        self.accelerations = acc_con
+
         for sc_id, sc in spacecraft_dict.items():
             N = sc.N
             
             sc_p = sc.state_ecef[:, 0:3]
-            sc_v = sc.state_ecef[:, 3:6]
+            sc_v = sc.state_ecef[:, 3:]
 
             sc_xy2 = sc_p[:,0]**2 + sc_p[:,1]**2
             sc_v2 = (sc_v*sc_v).sum(axis=1)
@@ -91,6 +97,7 @@ class EDRDensity:
             # here we use r^2*cos*2(phi) = x^2+y^2
             # and we subtract the edr at edr time zero
             edr = sc_v2/2. - e_gp - earth_angv2*sc_xy2/2.
+            #edr = sc_v2/2. - earth_angv2*sc_xy2/2.
 
             # compute the acceleration integrals
             # x-axis for integrating
@@ -100,6 +107,7 @@ class EDRDensity:
             for m_id, m_acc in acc_con.items():
                 # if the force model returns multiple accelerations
                 # loop through them all
+                print(m_id)
                 if m_acc[sc_id].shape[0] != N:
                     for i in range(m_acc[sc_id].shape[0]):
                         acc = m_acc[sc_id][i,:,:]
@@ -133,11 +141,11 @@ class EDRDensity:
         for sc_id, sc in spacecraft_dict.items():
             
             b=sc.cd_arr*(sc.drag_area_arr/1000.**2)/sc.sc_mass_arr
-
-            sc_v = sc.state_ecef[:, 3:6]
+            
+            sc_v = sc.state_ecef[:, 3:]
             sc_v3 = np.linalg.norm(sc_v,axis=1)**3
 
-            x_ax = (pd.DatetimeIndex(sc.time).to_julian_date()*86400.).to_numpy()
+            x_ax = sc.sspice_gps
             x_ax = x_ax-x_ax.min()
 
             y_int = b*sc_v3
