@@ -1,6 +1,6 @@
-"""Derive third body accelerations for an Earth orbiting spacecraft.
+"""Solar System Environment container.
 
-added: 25/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
+added: 18/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
 """
 import logging
 from operator import itemgetter
