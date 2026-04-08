@@ -170,7 +170,7 @@ class GravPot:
 
 class EarthPotential(ForceModel):
     """
-
+    Earth Gravatational Potential ForceModel implementation using the GravPot class.
     """
 
     name: str = "EarthGravatationalPotential"
@@ -179,10 +179,14 @@ class EarthPotential(ForceModel):
                  pot_file: str = 'EIGEN-2.gfc',
                  lmax: int=50,):
         """
-
+        Initialize the EarthPotential ForceModel.
+        
         Parameters
         ----------
-
+        pot_file : str, optional
+            ICEGEM potential file to use, by default 'EIGEN-2.gfc'
+        lmax : int, optional
+            Maximum degree of the spherical harmonic expansion, by default 50
         """        
         self.pot_file = pot_file
         self.lmax = lmax
@@ -191,12 +195,28 @@ class EarthPotential(ForceModel):
                      constellation: Constellation,
                      solarsys_env: SolarSystemEnvironment
                      ) -> dict[str, npt.NDArray[np.float64]]:
+        """Not implemented for EarthPotential, only potential is calculated
+        """        
         raise NotImplementedError("Not implemented for EarthPotential.")
 
 
     def potential(self, 
                      constellation: Constellation
                      ) -> dict[str, npt.NDArray[np.float64]]:
+        """Return the potential for each Spacecraft in a Constellation object
+
+        Parameters
+        ----------
+        constellation : Constellation
+            A Constellation object containing one or more Spacecraft objects for 
+            which the potential will be calculated.
+
+        Returns
+        -------
+        dict[str, npt.NDArray[np.float64]]
+           A dictionary keyed by spacecraft ID. Each value of the key is an array
+           corresponding to the potential for each position of the Spacecraft state.
+        """        
         pot_dict = {}
 
         for sc_id, sc in constellation.spacecraft.items():
