@@ -13,7 +13,20 @@ logger = logging.getLogger(__name__)
 
 def setup_gmat(apistartup: str | Path,
                gmat_install: str | Path):
+    """Setup the GMAT python API.
 
+    Parameters
+    ----------
+    apistartup : str | Path
+        GMAT startup file for loading and adding GMAT to the python path.
+    gmat_install : str | Path
+        GMAT installation  directory for adding GMAT to the python path.
+
+    Raises
+    ------
+    ValueError
+        Cannot find the GMAT startup file in the GMAT installation directory.
+    """
     gmat_bin_path = os.path.join(gmat_install, "bin")
     startup = os.path.join(gmat_bin_path, apistartup)
 
