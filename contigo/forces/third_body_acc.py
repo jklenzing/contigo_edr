@@ -206,8 +206,6 @@ class ThirdBody():
                  ephemeris: str = "de440s",):
         """Third body gravity acting on individual satellites in a Constellation
         
-        Wrapper for ThirdBodyAcc to follow the .base.ForceModel(Protocol)
-
         Parameters
         ----------
         body : npt.ArrayLike, optional
@@ -286,7 +284,28 @@ class ThirdBodyEnv(ForceModel):
                      constellation: Constellation, 
                      solarsys_env: SolarSystemEnvironment
                      ) -> dict[str, npt.NDArray[np.float64]]: 
+        """Derive third body acceleration for a Constellation of Spacecraft from the
+        SolarSystemEnvironment
 
+        Parameters
+        ----------
+        constellation : Constellation
+            Constellation container with the spcaecraft state, physical properties,
+            spacecraft IDs, and time arrays.
+        solarsys_env : SolarSystemEnvironment
+            Solar System Environment container to load the ephemeris of solar system 
+            bodies. The ephemeris is loaded for the derivation of the third body 
+            accelerations.
+
+        Returns
+        -------
+        dict[str, npt.NDArray[np.float64]]
+            A dictionary keyed by spacecraft ID. The array is an (B,N,3) array where 
+            B is the number of bodies in the SolarSystemEnvironment, N is the number of
+            spacecraft states, and 3 is the x,y,z components of the third body
+            acceleration. The order of the bodies is the same as the order of the bodies
+            in the SolarSystemEnvironment.
+        """
         acc_dict = {}
 
         for sc_id, sc in constellation.spacecraft.items():
@@ -303,4 +322,5 @@ class ThirdBodyEnv(ForceModel):
     def potential(self,
                   constellation: Constellation
                   ) -> dict[str, npt.NDArray[np.float64]]:
+        """Not implemented for ThirdBodyAcc, only acceleration is calculated."""
         raise NotImplementedError("Not implemented for ThirdBodyAcc.")
