@@ -227,4 +227,6 @@ class SRPAcc(ForceModel):
     def potential(self, 
                 constellation: Constellation
                 ) -> dict[str, npt.NDArray[np.float64]]:
+        """Not implemented for SRPAcc, only acceleration is calculated.
+        """        
         raise NotImplementedError("Not implemented for SRPAcc.")
