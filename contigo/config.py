@@ -30,7 +30,8 @@ LEAP_FILE = 'naif0012.tls'
 PCK_FILE = 'earth_latest_high_prec.bpc'
 
 # Mutable State Values
-state = {'gmat_loaded':False,
+state = {'orekit_loaded':False,
+         'gmat_loaded':False,
          'gmatpy':None,
          'kernel_downloaded':False,
          'pot_coef_loaded':False,
