@@ -1,6 +1,6 @@
-"""Derive third body accelerations for an Earth orbiting spacecraft.
+"""Constellation container for managing multiple spacecraft.
 
-added: 18/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
+added: 26/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
 """
 from typing import Sequence
 import numpy as np
