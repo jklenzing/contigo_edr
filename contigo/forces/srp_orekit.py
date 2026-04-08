@@ -9,8 +9,12 @@ import numpy.typing as npt
 
 from contigo.forces.base import ForceModel
 from contigo.constellation import Constellation
-from contigo.forces.srp_gmat import SRPGMATAcc
 from contigo.solar_system_ephem import SolarSystemEnvironment
+
+import contigo.config as config
+if config.state['orekit_loaded'] is False:
+    from contigo.contigo_utils import orekit_utils
+    orekit_utils.start_orekit()
 
 from org.orekit.time import AbsoluteDate, TimeScalesFactory
 from org.contigo.orekit_utils import SRPCannonballBatchHelper

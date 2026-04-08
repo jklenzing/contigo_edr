@@ -5,6 +5,11 @@ added: 04/03/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
 import numpy as np
 import numpy.typing as npt
 
+import contigo.config as config
+if config.state['orekit_loaded'] is False:
+    from contigo.contigo_utils import orekit_utils
+    orekit_utils.start_orekit()
+
 from java.util import ArrayList
 
 from org.orekit.time import AbsoluteDate, TimeScalesFactory
