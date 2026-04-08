@@ -63,7 +63,8 @@ def start_orekit(vmargs: Union[str, None] = None,
 
 def get_gitlab_sha(project_id=18, branch="main"):
     # Note: the branch was renamed from 'master' to 'main'
-    url = f"https://gitlab.orekit.org/api/v4/projects/{project_id}/repository/commits/{branch}"
+    url_base = "https://gitlab.orekit.org/api/v4/projects/"
+    url = f"{url_base}{project_id}/repository/commits/{branch}"
     response = requests.get(url)
     
     if response.status_code == 404:
