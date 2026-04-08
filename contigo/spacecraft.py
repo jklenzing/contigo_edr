@@ -1,4 +1,5 @@
-"""Derive third body accelerations for an Earth orbiting spacecraft.
+"""Spacecraft conatiner class for managin individual spacecraft states, 
+physical properties, and IDs.
 
 added: 18/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
 """
