@@ -1,3 +1,9 @@
+"""Derive SRP accelerations for an Earth orbiting spacecraft using
+the Orekit library.
+
+added: 23/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
+"""
+
 import numpy as np
 import numpy.typing as npt
 
@@ -81,4 +87,5 @@ class SRPOrekitCB(ForceModel):
     def potential(self, 
                 constellation: Constellation
                 ) -> dict[str, npt.NDArray[np.float64]]:
-        raise NotImplementedError("Not implemented for SRPAcc.")
+        """Not implemented for SRPOrekitCB, only acceleration is calculated"""
+        raise NotImplementedError("Not implemented for SRPOrekitCB.")
