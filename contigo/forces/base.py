@@ -1,4 +1,10 @@
-"""Derive third body accelerations for an Earth orbiting spacecraft.
+"""Force model protocol that all forces must follow.
+
+Simplifies and standardizes the inteface for all forces. This allows easy accees and 
+easy addition of new forces to the EDR and EFD calculations.
+
+Wrappers can be written to convert existing force models to this protocol, 
+and new force models can be written to follow this protocol from the start.
 
 added: 18/02/2026 Kyle Murphy <kylemurphy.spacephys@gmail.com>
 """
