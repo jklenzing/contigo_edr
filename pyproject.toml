@@ -43,10 +43,13 @@ dependencies = [
     "tqdm",
     "requests",
     "pyshtools",
-    "spiceypy"
+    "spiceypy",
+    "orekit-jpype"
 ]
 
 [project.optional-dependencies]
+orekit = ["orekitdata @ git+https://gitlab.orekit.org/orekit/orekit-data.git"]
+
 dev = [
     "pytest",
     "pytest-cov",

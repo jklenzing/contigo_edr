@@ -31,20 +31,26 @@ def start_orekit(vmargs: Union[str, None] = None,
         orekit.initVM(jvmpath=jvmpath,
               additional_classpaths=additional_classpaths)
 
-        # finish seeting up the orekit data
-        from orekit_jpype.pyhelpers import setup_orekit_data
-        from orekit_jpype.pyhelpers import download_orekit_data_curdir
+        # try to load from the pip orekitdata library first
+        # fall back to the zip
+        try:
+            import orekitdata
+            print('Loading Orekit data from pip library')
+            setup_orekit_data(from_pip_library=True)
+        except ImportError as e:
+            # finish seeting up the orekit data
+            from orekit_jpype.pyhelpers import download_orekit_data_curdir
+            from orekit_jpype.pyhelpers import setup_orekit_data
+            # check for the orekit data file
+            orekit_data = Path(config.DATA_DIR).resolve() / 'orekit_data.zip'
+            orekit_data = orekit_data.resolve()
+            if not orekit_data.exists():
+                print(f'Downloading Orekit data to {orekit_data}')
+                download_orekit_data_curdir(orekit_data._str)
 
-        # check for the orekit data file
-        orekit_data = Path(config.DATA_DIR).resolve() / 'orekit_data.zip'
-        orekit_data = orekit_data.resolve()
-        if not orekit_data.exists():
-            print(f'Downloading Orekit data to {orekit_data}')
-            download_orekit_data_curdir(orekit_data._str)
-
-        # setup the orekit data
-        print(f'Loading Orekit data to {orekit_data}')
-        setup_orekit_data(filenames=orekit_data._str, from_pip_library=False)
+            # setup the orekit data
+            print(f'Loading Orekit data to {orekit_data}')
+            setup_orekit_data(filenames=orekit_data._str, from_pip_library=False)
 
         # set the state variable to true so we know orekit has been loaded
         config.state['orekit_loaded'] = True
