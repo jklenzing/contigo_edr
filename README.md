@@ -1,15 +1,15 @@
 # CONTIGO
 
 This repository implements an Energy Dissipation Rate (EDR) and Effective Density (EDF) 
-framework for Earth-orbiting spacecraft.
+framework for Earth-orbiting spacecraft. Designed for modular, extensible, and high-performance analysis.
 
 At a high level, the module:
-- Loads spacecraft orbit data (HDF, CSV, SP3, multi-satellite).
-- Groups spacecraft in a Constellation
+- Loads ```Spacecraft``` orbit data (HDF, CSV, SP3, multi-satellite).
+- Groups multiple ```Spacecraft``` into a ```Constellation```
 - Loads and caches solar system ephemeris
 - Computes force model accelerations and Earth gravity potential
 - Computes the energy dissapation rate
-- Computes effective density (*to do*)
+- Computes effective density
 
 It is structured as a **modular framework** so that forces/accelerations can easily be 
 added to the computation of EDR and EFD using the ```ForceModel``` template which can
@@ -36,7 +36,8 @@ end
 
 %% ================= ENVIRONMENT LAYER =================
 subgraph ENV_LAYER["Environment Layer"]
-    SPICEEphem["SPICEEphem"]
+    SPICEEphem["EphemerisProvider
+                SPICE/Orekit"]
     SolarSystemEnvironment["SolarSystemEnvironment"]
 end
 
@@ -86,7 +87,7 @@ ForceModel --> |Acceleration or Potential| EDRDensity
     - Direct numpy arrays
     - HDF files
     - CSV/text files (can mix types and zip vs not zipped files)
-    - SP3 files
+    - SP3 files (including compressed gz and zip)
 - Load multiple Spacecraft
 - Normalizes data in a strict internal state for computing forces
     - ```state_ecef = [x, y, z, vx, vy, vz]```
@@ -104,8 +105,13 @@ ForceModel --> |Acceleration or Potential| EDRDensity
 ### Environment Layer
 
 #### Ephemeris
-```SPICEEphem``` controls the loading of solar system ephemeris and the required SPICE
-kernels to compute ephemerides. ```SPICEEphem``` provides the ephemeris to ```SolarSystemEnvironment```
+Either SPICE or Orekit can be used for ephemperis via ```SPICEEphem``` or ```OrekitEphem```. 
+
+```SPICEEphem``` controls the loading of solar system ephemeris and the required SPICE kernels to compute ephemerides. 
+
+```OrekitEphem``` controls the loading of solar system ephemeris using the [Orekit java library](https://www.orekit.org/) and the [orekit_jpype](https://gitlab.orekit.org/orekit/orekit_jpype) Python package. ```orekit_jpype``` is a python wrapper around the Orekit Java library which uses a Java Virtual Machine to access the Orekit libary. ```OrekitEphem``` relies on a CONTIGO java backend that speeds up the computation of the grabbing of ephemeris from the Java Virtual Machine ```EphemerisBatchHelper.java``` - this code is precompiled and can is loaded whhen the Orekit Java Virtual Machine is started by adding the jar file ```orekit_utils-1.0.0.jar``` to the initialization via ```orekit.initVM(additional_classpaths=path-to-jar)```. 
+
+```SPICEEphem``` and ```OrekitEphem``` provide the ephemeris to ```SolarSystemEnvironment```.
 
 #### Solar System Ephemeris
 ```SolarSystemEnvironment``` is a high-performance ephemeris cache to reduce the loading
@@ -125,8 +131,7 @@ to plugin in new Forces.
 - Third body accelerations (```third_body_acc.py```) which uses spacecraft positions and
 solar system ephemeris to compute accelerations.
 
-- Solar Radiation Pressure (```srp_acc.py```) via the General Mission Analysis Tool
-(GMAT) Python API. Currently uses a cannonball method.
+- Solar Radiation Pressure via the General Mission Analysis Tool (GMAT, ```srp_acc.py```) Python API or from the Orekit Python wrapper (```orekit_jpype```) and the ```SRPCannonballBatchHelper.java``` backend. Currently both methods use a cannonball approach. Similar to the Orekit ephermeris the Orekit SRP calculation is provided in the same precompiled jar which is loaded when the Orekit Java Virtual Machine is initialized.
 
 - Earth gravatational potential (```grav_pot.py```). Computes gravatational potential
 from the normalized Legendre Polynmails (PySHTOOLS) using [International Centre for 
@@ -135,12 +140,9 @@ can be downloaded [here](https://icgem.gfz.de/tom_longtime).
 
 ### Computation Layer/Engine
 The ```EDRDensity``` is the core engine which pulls everthing together to calculate the
-energy dissapation rate and effective density from a ```Constellation``` of satellites.
+energy dissapation rate and effective density from a ```Constellation``` of ```Spacecraft```.
 
-A user creates a ```Constellation``` of ```Spacecraft```, defines a solar system 
-ephemeris provider ```SPICEEphem``` and ```SolarSystemEnvironment```, and defines a set
-of ```ForceModels```. These are passed to the ```EDRDensity``` class which then computes
-EDR and EFD for the constellation of satellites.
+A user creates a ```Constellation``` of ```Spacecraft```, defines a solar system ephemeris provider (```SPICEEphem``` or ```OrekitEphem```) and ```SolarSystemEnvironment```, and defines a set of ```ForceModels```. These are passed to the ```EDRDensity``` class which then computes EDR and EFD for the constellation of satellites.
 
 ## Example
 
@@ -167,7 +169,7 @@ from contigo.forces.srp_acc import SRPAcc
 Load some example data into a Constellation object
 
 ```python 
-hdf_sc = Constellation(state_file=r'D:\GitHub\contigo_edr\data\ESA_pod.hdf', 
+hdf_sc = Constellation(state_file=r'\contigo_edr\data\ESA_pod.hdf', 
                     time_col='DateTime', x_col='x', y_col='y', z_col='z',
                     vx_col='vx', vy_col='vy', vz_col='vz', 
                     sc_id_col='filename', sc_fn_slc=slice(-11,-8),
