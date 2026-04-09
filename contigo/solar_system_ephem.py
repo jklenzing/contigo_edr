@@ -17,11 +17,11 @@ class SolarSystemEnvironment:
 
     Design
     ------
-    • Bodies are static after initialization
-    • Tolerance is static after initialization
-    • Internally uses a dictionary keyed by quantized time
-    • O(1) lookup instead of O(N²) tolerance scans
-    • Cached arrays rebuilt lazily only if needed
+    Bodies are static after initialization
+    Tolerance is static after initialization
+    Internally uses a dictionary keyed by quantized time
+    O(1) lookup instead of O(N²) tolerance scans
+    Cached arrays rebuilt lazily only if needed
     """
 
     def __init__(
@@ -66,7 +66,31 @@ class SolarSystemEnvironment:
         gps_time: npt.NDArray[np.float64],
         utc_time: npt.NDArray[np.datetime64],
     ) -> tuple[np.ndarray, np.ndarray]:
+        """Retrieve ephemeris data for requested times using cached or newly
+        computed values.
 
+        Parameters
+        ----------
+        ephem_time : npt.NDArray[np.float64]
+            Ephemeris time array (ET) in seconds.
+        gps_time : npt.NDArray[np.float64]
+            GPS time array corresponding to ephem_time.
+        utc_time : npt.NDArray[np.datetime64]
+            UTC datetime array corresponding to ephem_time.
+
+        Returns
+        -------
+        tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+            (ephem_time, gps_time, utc_time, positions)
+
+        positions : np.ndarray
+            Array of shape (n_bodies, N, 3) containing position vectors
+            of celestial bodies in the configured reference frame.
+
+        Notes
+        -----
+        Uses time quantization to reduce redundant ephemeris lookups.
+        """
         sp_et = np.asarray(ephem_time, dtype=float)
         sp_gps = np.asarray(gps_time,dtype=float)
         sp_utc = np.asarray(utc_time)
