@@ -35,12 +35,8 @@ class SRPOrekitCB(ForceModel):
 
         Parameters
         ----------
-        """        
-        
-        # we eventually want to check that the orekit JVM is running and 
-        # that the SRPCannonballBatchHelper class is available, 
-        # but for now we will just assume it is and catch errors when we try to use it.
-        
+        """
+
         pass
 
     def acceleration(self, 
@@ -62,6 +58,10 @@ class SRPOrekitCB(ForceModel):
         Returns
         -------
         dict[spacecraft_id] -> (N,3)
+
+        Notes
+        -----
+        Uses Orekit's SolarRadiationPressure model via JPype bridge.
         """        
         acc_dict = {}
         utc = TimeScalesFactory.getUTC()
