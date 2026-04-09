@@ -53,7 +53,7 @@ class ForceModel(Protocol):
     def potential(self, 
                   constellation: Constellation
                   ) -> dict[str, npt.NDArray[np.float64]]:
-                """
+        """
         Compute potential for all spacecraft in a constellation.
 
         Parameters

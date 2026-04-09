@@ -1,8 +1,14 @@
-"""Ephemeris base protocol and common logic class."""
+"""Ephemeris base protocol and common logic class.
+
+Simplifies and standardizes the inteface for ephemeris providers.
+
+added: 09/04/2026  Kyle Murphy <kylemurphy.spacephys@gmail.com>
+
+"""
 
 from typing import Protocol, runtime_checkable
 
-from numba import np
+import numpy as np
 
 @runtime_checkable
 class EphemerisProvider(Protocol):
