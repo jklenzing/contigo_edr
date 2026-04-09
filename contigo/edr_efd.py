@@ -180,8 +180,14 @@ class EDRDensity:
         https://doi.org/10.1029/2024EA003898
 
         Returns
-        ------- 
-        Dictionary keyed by spacecraft ID.
+        -------
+        dict
+            Dictionary mapping spacecraft IDs to EDR time series.
+
+        Notes
+        -----
+        Combines force model accelerations and gravitational potential
+        to compute energy dissipation.
         """
         # system is the constellation of spacecraft
         spacecraft_dict = self.constellation.spacecraft
