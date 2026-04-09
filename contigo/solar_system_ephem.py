@@ -7,6 +7,8 @@ from operator import itemgetter
 import numpy as np
 import numpy.typing as npt
 
+from contigo.ephemeris.base import EphemerisProvider
+
 from contigo.contigo_utils.constants import GMc
 
 logger = logging.getLogger(__name__)
@@ -31,7 +33,7 @@ class SolarSystemEnvironment:
         gps_time: npt.NDArray[np.float64] | None,
         utc_time: npt.NDArray[np.datetime64] | None,
         tolerance: float | None,
-        provider
+        provider: EphemerisProvider
     ) -> None:
 
         self.bodies = [b.upper() for b in bodies]
