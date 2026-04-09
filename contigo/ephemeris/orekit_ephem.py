@@ -12,10 +12,12 @@ if config.state['orekit_loaded'] is False:
 
 from java.util import ArrayList
 
+from contigo.ephemeris.base import EphemerisProvider
+
 from org.orekit.time import AbsoluteDate, TimeScalesFactory
 from org.contigo.orekit_utils import EphemerisBatchHelper
 
-class OrekitEphem:
+class OrekitEphem(EphemerisProvider):
     """
     Orekit-backed ephemeris provider.
     """
@@ -30,7 +32,30 @@ class OrekitEphem:
                  gps_time: None = None,
                  ephem_time: None = None,
                  ):
-        
+        """
+        Compute positions of celestial bodies.
+
+        Parameters
+        ----------
+        ephem_time : npt.NDArray[np.float64]
+            Ephemeris time array (ET) in seconds.
+        gps_time : npt.NDArray[np.float64]
+            GPS time array corresponding to ephem_time.
+        utc_time : npt.NDArray[np.datetime64]
+            UTC datetime array corresponding to ephem_time.
+
+            
+        Returns
+        -------
+        np.ndarray
+            Array of shape (n_bodies, N, 3) containing position vectors.
+
+        Notes
+        -----
+        This provider only uses utc_time for its internal logic, but the interface 
+        allows for flexibility in case future providers need to use different
+        time systems.
+        """
         utc = TimeScalesFactory.getUTC()
         first_dt = utc_time[0]
         ref_date = AbsoluteDate(first_dt.year, first_dt.month, first_dt.day,

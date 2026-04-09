@@ -20,11 +20,12 @@ import spiceypy as spice
 import contigo.contigo_utils.utils as utils
 import contigo.config as config
 
+from contigo.ephemeris.base import EphemerisProvider
 from contigo.contigo_utils.constants import GMc
 
 logger = logging.getLogger(__name__)
 
-class SPICEEphem:
+class SPICEEphem(EphemerisProvider):
     """
     SPICE-backed ephemeris provider with unique-time optimization.
     """
@@ -45,7 +46,30 @@ class SPICEEphem:
                  gps_time: None = None,
                  ephem_time: np.ndarray | None = None,
                  ):
+        """
+        Compute positions of celestial bodies.
 
+        Parameters
+        ----------
+        ephem_time : npt.NDArray[np.float64]
+            Ephemeris time array (ET) in seconds.
+        gps_time : npt.NDArray[np.float64]
+            GPS time array corresponding to ephem_time.
+        utc_time : npt.NDArray[np.datetime64]
+            UTC datetime array corresponding to ephem_time.
+
+            
+        Returns
+        -------
+        np.ndarray
+            Array of shape (n_bodies, N, 3) containing position vectors.
+
+        Notes
+        -----
+        This provider only uses ephem_time for its internal logic, but the interface 
+        allows for flexibility in case future providers need to use different
+        time systems.
+        """
         # find the unique values of et and return their indecies
         # return the inverse indices of that allow the reconstruction
         # of the orignal array
