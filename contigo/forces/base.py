@@ -32,9 +32,41 @@ class ForceModel(Protocol):
                      constellation: Constellation,
                      solarsys_env: SolarSystemEnvironment
                      ) -> dict[str, npt.NDArray[np.float64]]:
+        """
+        Compute acceleration for all spacecraft in a constellation.
+
+        Parameters
+        ----------
+        constellation : Constellation
+            Collection of spacecraft objects with state vectors.
+        environment : SolarSystemEnvironment
+            Ephemeris provider and cache.
+
+        Returns
+        -------
+        dict
+            Dictionary mapping spacecraft IDs to acceleration arrays
+            of shape (N, 3) or (n_bodies, N, 3).
+        """
         ...
 
     def potential(self, 
                   constellation: Constellation
                   ) -> dict[str, npt.NDArray[np.float64]]:
+                """
+        Compute potential for all spacecraft in a constellation.
+
+        Parameters
+        ----------
+        constellation : Constellation
+            Collection of spacecraft objects with state vectors.
+        environment : SolarSystemEnvironment
+            Ephemeris provider and cache.
+
+        Returns
+        -------
+        dict
+            Dictionary mapping spacecraft IDs to potential arrays
+            of shape (N, 3).
+        """
         ...
