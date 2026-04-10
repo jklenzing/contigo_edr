@@ -8,7 +8,6 @@ import numpy as np
 import numpy.typing as npt
 
 from contigo.ephemeris.base import EphemerisProvider
-
 from contigo.contigo_utils.constants import GMc
 
 logger = logging.getLogger(__name__)

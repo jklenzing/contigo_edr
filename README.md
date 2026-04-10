@@ -107,9 +107,9 @@ ForceModel --> |Acceleration or Potential| EDRDensity
 #### Ephemeris
 Either SPICE or Orekit can be used for ephemperis via ```SPICEEphem``` or ```OrekitEphem```. 
 
-```SPICEEphem``` controls the loading of solar system ephemeris and the required SPICE kernels to compute ephemerides. 
+- ```SPICEEphem``` controls the loading of solar system ephemeris and the required SPICE kernels to compute ephemerides. 
 
-```OrekitEphem``` controls the loading of solar system ephemeris using the [Orekit java library](https://www.orekit.org/) and the [orekit_jpype](https://gitlab.orekit.org/orekit/orekit_jpype) Python package. ```orekit_jpype``` is a python wrapper around the Orekit Java library which uses a Java Virtual Machine to access the Orekit libary. ```OrekitEphem``` relies on a CONTIGO java backend that speeds up the computation of the grabbing of ephemeris from the Java Virtual Machine ```EphemerisBatchHelper.java``` - this code is precompiled and can is loaded whhen the Orekit Java Virtual Machine is started by adding the jar file ```orekit_utils-1.0.0.jar``` to the initialization via ```orekit.initVM(additional_classpaths=path-to-jar)```. 
+- ```OrekitEphem``` controls the loading of solar system ephemeris using the [Orekit java library](https://www.orekit.org/) and the [orekit_jpype](https://gitlab.orekit.org/orekit/orekit_jpype) Python package. ```orekit_jpype``` is a python wrapper around the Orekit Java library which uses a Java Virtual Machine to access the Orekit libary. ```OrekitEphem``` relies on a CONTIGO java backend that speeds up the computation of the grabbing of ephemeris from the Java Virtual Machine ```EphemerisBatchHelper.java``` - this code is precompiled and can is loaded whhen the Orekit Java Virtual Machine is started by adding the jar file ```orekit_utils-1.0.0.jar``` to the initialization via ```orekit.initVM(additional_classpaths=path-to-jar)```. 
 
 ```SPICEEphem``` and ```OrekitEphem``` provide the ephemeris to ```SolarSystemEnvironment```.
 
