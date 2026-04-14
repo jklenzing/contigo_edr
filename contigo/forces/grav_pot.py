@@ -184,7 +184,7 @@ class EarthPotential(ForceModel):
         Parameters
         ----------
         pot_file : str, optional
-            ICEGEM potential file to use, by default 'EIGEN-2.gfc'
+            ICGEM potential file to use, by default 'EIGEN-2.gfc'
         lmax : int, optional
             Maximum degree of the spherical harmonic expansion, by default 50
         """        
