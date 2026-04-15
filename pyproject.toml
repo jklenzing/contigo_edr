@@ -39,12 +39,14 @@ dependencies = [
     "numpy>=1.23",
     "scipy>=1.10",
     "pandas>=2.0",
+    "h5py>=3.9",
     "numba>=0.57",
     "tqdm",
     "requests",
     "pyshtools",
-    "spiceypy",
-    "orekit-jpype"
+    "spiceypy>=8.0.2",
+    "orekit-jpype>=13.1.4",
+    "jpype1>=1.4"
 ]
 
 [project.optional-dependencies]
