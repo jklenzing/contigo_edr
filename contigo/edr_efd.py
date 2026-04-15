@@ -55,7 +55,7 @@ class EDRDensity:
             used in the EDR calculation.
         """
         self.constellation = constellation
-        self.solarsys_env = solarsys_env 
+        self.solarsys_env = solarsys_env
         self.force_models = force_models
         self.potential_model = potential_model
 
@@ -70,7 +70,7 @@ class EDRDensity:
     def compute_den(self,
                     window: pd.Timedelta=pd.Timedelta(minutes=90),
                     smth_edr: int=10,
-                    smth_den: int | None = None) -> dict:
+                    smth_den: int | None = None,) -> dict:
         """Derive the effective density, equation 5 and A16 of 
         https://doi.org/10.1029/2024EA003898, from the EDR and the denominator.
 
@@ -118,8 +118,7 @@ class EDRDensity:
             raise ValueError('EDR and denominator keys do not match')
         
         for sc_id in edr_k:
-            print(sc_id)
-            edr = self.edr[sc_id]['edr']
+            edr = self.edr[sc_id]
             denom = self.denom[sc_id]
 
             if edr.shape != denom.shape:
@@ -234,7 +233,6 @@ class EDRDensity:
             for m_id, m_acc in acc_con.items():
                 # if the force model returns multiple accelerations
                 # loop through them all
-                print(m_id)
                 if m_acc[sc_id].shape[0] != N:
                     for i in range(m_acc[sc_id].shape[0]):
                         acc = m_acc[sc_id][i,:,:]
@@ -249,7 +247,7 @@ class EDRDensity:
             edr = edr - acc_int
             edr = edr - edr[0] 
 
-            results[sc_id] = {'edr': edr}
+            results[sc_id] = edr
 
         return results
     
