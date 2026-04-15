@@ -76,7 +76,7 @@ class GravPot:
         if (config.state['pot_coef_loaded'] is True and
                 config.state['pot_file'] == os.path.basename(self.pot_file)):
 
-            logger.info('Loading Potential coeffecients from current ' \
+            logger.info('Loading potential coeffecients from current ' \
             'state which used %s.',  config.state['pot_file'])
 
             self.clm = config.state['pot_clm']
@@ -220,7 +220,6 @@ class EarthPotential(ForceModel):
         pot_dict = {}
 
         for sc_id, sc in constellation.spacecraft.items():
-
             sc_sph = sc.spherical()
 
             ep = GravPot(r=sc_sph[:,0],lat=sc_sph[:,1],lon=sc_sph[:,2],
