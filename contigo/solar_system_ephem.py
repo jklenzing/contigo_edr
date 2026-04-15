@@ -28,11 +28,11 @@ class SolarSystemEnvironment:
     def __init__(
         self,
         bodies: npt.NDArray[np.str_],
-        ephem_time: npt.NDArray[np.float64] | None,
-        gps_time: npt.NDArray[np.float64] | None,
-        utc_time: npt.NDArray[np.datetime64] | None,
         tolerance: float | None,
-        provider: EphemerisProvider
+        provider: EphemerisProvider,
+        ephem_time: npt.NDArray[np.float64] | None = None,
+        gps_time: npt.NDArray[np.float64] | None = None,
+        utc_time: npt.NDArray[np.datetime64] | None = None,
     ) -> None:
 
         self.bodies = [b.upper() for b in bodies]
