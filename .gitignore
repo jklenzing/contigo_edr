@@ -73,7 +73,7 @@ docs/_build/
 
 # PyBuilder
 .pybuilder/
-target/
+#target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -206,4 +206,10 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
+
+# git ingest full markdown
 git_ingest.md
+
+# java stuff we don't need
+maven-archiver/
+maven-status/
