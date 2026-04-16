@@ -213,3 +213,7 @@ git_ingest.md
 # java stuff we don't need
 maven-archiver/
 maven-status/
+
+# files to ignore
+ig_files/
+ig_*
