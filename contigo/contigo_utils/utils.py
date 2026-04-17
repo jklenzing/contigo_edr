@@ -110,7 +110,7 @@ def df_sp3(fn):
             if line.startswith('*'): 
                 dt.append(line[1:].strip())
             elif line.startswith('P'): 
-                dat.append(line.split()[0:4])
+                dat.append([line[0:4],line[4:18], line[18:32], line[32:46]])
             elif line.startswith('V'):
                 vel.append([line[4:18], line[18:32], line[32:46]])
     finally:
